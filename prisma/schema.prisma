@@ -1,0 +1,79 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  email         String   @unique
+  password      String
+  role          String   @default("user") // "user" atau "admin"
+  total_xp      Int      @default(0)
+  current_level String   @default("Pemula")
+  createdAt     DateTime @default(now())
+
+  badges        UserBadge[]
+  arguments     Argument[]
+  quizAttempts  QuizAttempt[]
+}
+
+model Module {
+  id            Int      @id @default(autoincrement())
+  judul         String
+  konten_materi String   @db.Text
+  format_debat  String?  // AP atau BP
+  status_lock   Boolean  @default(true)
+  urutan        Int
+
+  quizzes       Quiz[]
+}
+
+model Quiz {
+  id            Int      @id @default(autoincrement())
+  pertanyaan    String   @db.Text
+  kunci_jawaban String
+  bobot_xp      Int      @default(30)
+
+  moduleId      Int
+  module        Module   @relation(fields: [moduleId], references: [id])
+}
+
+model Argument {
+  id            Int      @id @default(autoincrement())
+  teks_argumen  String   @db.Text
+  skor_AREL     Float?
+  feedback_ai   String?  @db.Text
+  xp_diperoleh  Int      @default(0)
+  timestamp     DateTime @default(now())
+
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model UserBadge {
+  id            Int      @id @default(autoincrement())
+  nama_badge    String
+  deskripsi     String?
+  tanggal_dapat DateTime @default(now())
+
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model QuizAttempt {
+  id            Int      @id @default(autoincrement())
+  skor          Int
+  timestamp     DateTime @default(now())
+
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  quizId        Int
+  quiz          Quiz     @relation(fields: [quizId], references: [id])
+}
