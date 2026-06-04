@@ -1,35 +1,56 @@
-// app/modul/page.tsx
-'use client';
+import { db } from '@/lib/db';
+import Link from 'next/link';
 
-import { useRouter } from 'next/navigation';
+// Fungsi untuk mengambil data langsung dari MySQL
+async function getSemuaModul() {
+  try {
+    const [rows] = await db.query('SELECT * FROM modul ORDER BY urutan ASC');
+    return rows;
+  } catch (error) {
+    console.error("Gagal mengambil data modul:", error);
+    return [];
+  }
+}
 
-const babList = [
-  { id: 1, title: "Bab 1: Pengantar Debat Parlementer" },
-  { id: 2, title: "Bab 2: Membangun Kasus Tim Debat (Case Build)" },
-  { id: 3, title: "Bab 3: Argumentasi (Argumentation)" },
-  { id: 4, title: "Bab 4: Sanggahan (Refutation)" },
-];
-
-export default function ModulList() {
-  const router = useRouter();
+export default async function ModulPage() {
+  const daftarModul = await getSemuaModul();
 
   return (
-    <div className="min-h-screen bg-[#f0fdfa] p-6">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Modul Pembelajaran</h1>
-        <p className="text-gray-600 mb-10">Pilih Bab yang ingin kamu pelajari</p>
+    <div className="min-h-screen bg-slate-900 text-white p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-teal-400 mb-2">Daftar Modul Pembelajaran</h1>
+        <p className="text-slate-400 mb-8">Kuasai parameter AREL melalu materi terstruktur di bawah ini.</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {babList.map((bab) => (
-            <div 
-              key={bab.id}
-              onClick={() => router.push(`/modul/${bab.id}`)}
-              className="bg-white rounded-2xl shadow p-8 hover:shadow-xl hover:border-[#14b8a6] border border-transparent transition cursor-pointer"
-            >
-              <h2 className="text-2xl font-semibold text-[#14b8a6]">{bab.title}</h2>
-              <p className="text-gray-500 mt-3">Klik untuk melihat subbab</p>
+        {/* Tempat Menampilkan List Modul Berdasarkan Database */}
+        <div className="grid gap-4">
+          {daftarModul.map((modul) => (
+            <div key={modul.id_modul} className="p-6 bg-slate-800 rounded-lg border border-slate-700 flex justify-between items-center shadow-md">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-200">
+                  {modul.urutan}. {modul.judul}
+                </h3>
+                <p className="text-slate-400 text-sm mt-1">{modul.deskripsi}</p>
+              </div>
+
+              {/* Tombol Baca / Status Terkunci (Gamifikasi dasar) */}
+              {modul.status_lock ? (
+                <span className="bg-slate-700 text-slate-500 px-4 py-2 rounded text-sm cursor-not-allowed">
+                  🔒 Terkunci
+                </span>
+              ) : (
+                <Link 
+                  href={`/modul/${modul.id_modul}`}
+                  className="bg-teal-500 hover:bg-teal-400 text-slate-900 px-4 py-2 rounded text-sm font-semibold transition"
+                >
+                  Mulai Belajar →
+                </Link>
+              )}
             </div>
           ))}
+
+          {daftarModul.length === 0 && (
+            <p className="text-slate-500 italic">Belum ada data modul di database.</p>
+          )}
         </div>
       </div>
     </div>
