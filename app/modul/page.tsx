@@ -7,11 +7,11 @@ async function getSemuaModul() {
     // Mengambil data dari tabel moduls MySQL
     const moduls = await prisma.moduls.findMany({
       orderBy: { 
-        id_modul: 'asc' // atau ganti 'urutan' sesuai kolom order di tabel kamu
+        id_modul: 'asc'
       }
     });
     
-    return moduls; // Sudah diganti dari 'rows' menjadi 'moduls'
+    return moduls;
   } catch (error) {
     console.error("Gagal mengambil data modul:", error);
     return [];
@@ -25,7 +25,7 @@ export default async function ModulPage() {
     <div className="min-h-screen bg-slate-900 text-white p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-teal-400 mb-2">Daftar Modul Pembelajaran</h1>
-        <p className="text-slate-400 mb-8">Kuasai parameter AREL melalu materi terstruktur di bawah ini.</p>
+        <p className="text-slate-400 mb-8">Kuasai parameter AREL melalui materi terstruktur di bawah ini.</p>
 
         {/* Tempat Menampilkan List Modul Berdasarkan Database */}
         <div className="grid gap-4">
@@ -33,9 +33,13 @@ export default async function ModulPage() {
             <div key={modul.id_modul} className="p-6 bg-slate-800 rounded-lg border border-slate-700 flex justify-between items-center shadow-md">
               <div>
                 <h3 className="text-xl font-semibold text-slate-200">
-                  {modul.urutan}. {modul.judul}
+                  {/* Disesuaikan dengan kolom 'urutan' dan 'judul_modul' sesuai schema database kamu */}
+                  {modul.urutan}. {modul.judul_modul}
                 </h3>
-                <p className="text-slate-400 text-sm mt-1">{modul.deskripsi}</p>
+                <p className="text-slate-400 text-sm mt-1">
+                  {/* Memotong konten materi sepanjang 100 karakter dengan aman */}
+                  {modul.konten_materi ? `${modul.konten_materi.substring(0, 100)}...` : ''}
+                </p>
               </div>
 
               {/* Tombol Baca / Status Terkunci (Gamifikasi dasar) */}

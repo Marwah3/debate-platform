@@ -8,8 +8,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ambil data gamifikasi dari API saat halaman di-load
-    fetch('/api/user?id_user=1')
+    // 1. Ambil data session login dari localStorage browser
+    const session = localStorage.getItem('user_session');
+    
+    // 2. PROTEKSI Halaman: Jika data login tidak ditemukan, tendang balik ke gerbang login
+    if (!session) {
+      alert('Akses ditolak! Silakan masuk ke akun Anda terlebih dahulu.');
+      window.location.href = '/login';
+      return;
+    }
+
+    const loggedInUser = JSON.parse(session);
+
+    // 3. Ambil data gamifikasi secara dinamis berdasarkan ID User asli yang sedang login
+    fetch(`/api/user?id_user=${loggedInUser.id_user}`)
       .then((res) => res.json())
       .then((resData) => {
         if (resData.success) {

@@ -1,12 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function PraktikDebatPage() {
   const [argumen, setArgumen] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasilEvaluasi, setHasilEvaluasi] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+  const session = localStorage.getItem('user_session');
+  if (!session) {
+    alert('Akses ditolak! Silakan login untuk memulai praktik debat.');
+    window.location.href = '/login';
+  }
+}, []);
 
   const handleKirimArgumen = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -109,13 +109,13 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                type="text" // Diubah dari 'email' menjadi 'text'
+                value={email} // Tetap biarkan menggunakan variabel state 'email' atau 'username' agar tidak perlu merombak fungsi atas
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
-                placeholder="••••••••"
+                placeholder="Ketik username Anda..."
                 required
               />
             </div>
