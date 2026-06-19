@@ -1,79 +1,76 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  url      = "mysql://root:@localhost:3306/materi_dwu_db"
 }
 
-model User {
-  id            Int      @id @default(autoincrement())
-  username      String   @unique
-  email         String   @unique
-  password      String
-  role          String   @default("user") // "user" atau "admin"
-  total_xp      Int      @default(0)
-  current_level String   @default("Pemula")
-  createdAt     DateTime @default(now())
+model argumens {
+  id_argumen   Int       @id @default(autoincrement())
+  id_user      Int?
+  teks_argumen String    @db.Text
+  skor_AREL    Int?      @default(0)
+  feedback_ai  String?   @db.Text
+  xp_diperoleh Int?      @default(0)
+  timestamp    DateTime? @default(now()) @db.Timestamp(0)
+  users        users?    @relation(fields: [id_user], references: [id_user], onDelete: Cascade, onUpdate: NoAction, map: "argumens_ibfk_1")
 
-  badges        UserBadge[]
-  arguments     Argument[]
-  quizAttempts  QuizAttempt[]
+  @@index([id_user], map: "id_user")
 }
 
-model Module {
-  id            Int      @id @default(autoincrement())
-  judul         String
-  konten_materi String   @db.Text
-  format_debat  String?  // AP atau BP
-  status_lock   Boolean  @default(true)
+model badges {
+  id_log        Int       @id @default(autoincrement())
+  id_user       Int?
+  nama_badge    String    @db.VarChar(100)
+  deskripsi     String?   @db.Text
+  tanggal_dapat DateTime? @default(now()) @db.Timestamp(0)
+  users         users?    @relation(fields: [id_user], references: [id_user], onDelete: Cascade, onUpdate: NoAction, map: "badges_ibfk_1")
+
+  @@index([id_user], map: "id_user")
+}
+
+model moduls {
+  id_modul      Int                 @id @default(autoincrement())
+  judul         String              @db.VarChar(150)
+  konten_materi String              @db.Text
+  format_debat  moduls_format_debat
+  status_lock   Boolean?            @default(true)
   urutan        Int
-
-  quizzes       Quiz[]
+  quizzes       quizzes[]
 }
 
-model Quiz {
-  id            Int      @id @default(autoincrement())
-  pertanyaan    String   @db.Text
-  kunci_jawaban String
-  bobot_xp      Int      @default(30)
+model quizzes {
+  id_quiz       Int     @id @default(autoincrement())
+  id_modul      Int?
+  pertanyaan    String  @db.Text
+  kunci_jawaban String  @db.VarChar(255)
+  bobot_xp      Int?    @default(30)
+  moduls        moduls? @relation(fields: [id_modul], references: [id_modul], onDelete: Cascade, onUpdate: NoAction, map: "quizzes_ibfk_1")
 
-  moduleId      Int
-  module        Module   @relation(fields: [moduleId], references: [id])
+  @@index([id_modul], map: "id_modul")
 }
 
-model Argument {
-  id            Int      @id @default(autoincrement())
-  teks_argumen  String   @db.Text
-  skor_AREL     Float?
-  feedback_ai   String?  @db.Text
-  xp_diperoleh  Int      @default(0)
-  timestamp     DateTime @default(now())
-
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
+model users {
+  id_user        Int        @id @default(autoincrement())
+  nama           String     @db.VarChar(100)
+  email          String     @unique(map: "email") @db.VarChar(100)
+  password       String     @db.VarChar(255)
+  role           users_role @default(mahasiswa)
+  total_xp       Int?       @default(0)
+  current_level  Int?       @default(1)
+  tanggal_daftar DateTime?  @default(now()) @db.Timestamp(0)
+  argumens       argumens[]
+  badges         badges[]
 }
 
-model UserBadge {
-  id            Int      @id @default(autoincrement())
-  nama_badge    String
-  deskripsi     String?
-  tanggal_dapat DateTime @default(now())
-
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
+enum moduls_format_debat {
+  AP
+  BP
 }
 
-model QuizAttempt {
-  id            Int      @id @default(autoincrement())
-  skor          Int
-  timestamp     DateTime @default(now())
-
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
-  quizId        Int
-  quiz          Quiz     @relation(fields: [quizId], references: [id])
+enum users_role {
+  mahasiswa
+  admin
 }

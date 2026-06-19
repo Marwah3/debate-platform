@@ -9,22 +9,54 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(''); // State baru untuk menampung pesan eror
   const { login } = useAuth();
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMsg('');
 
-    const dummyUser = {
-      username: email.split('@')[0],
-      email: email,
-      role: 'user'
-    };
+    try {
+      // 1. Tembak data email & password ke API Backend MySQL
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    login(dummyUser);
-    alert('Login berhasil!');
-    router.push('/dashboard');
+      const responseData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(responseData.error || 'Gagal masuk ke sistem.');
+      }
+
+      // 2. Jika sukses, buat objek user sesuai struktur AuthContext kamu
+      const activeUser = {
+        id_user: responseData.user.id_user,
+        username: responseData.user.nama,
+        email: responseData.user.email,
+        role: 'user'
+      };
+
+      // 3. Simpan session di browser agar bisa dibaca halaman /praktik
+      localStorage.setItem('user_session', JSON.stringify(activeUser));
+
+      // 4. Perbarui state di AuthContext global kamu
+      login(activeUser);
+      
+      alert('Login berhasil!');
+      router.push('/dashboard');
+
+    } catch (err: any) {
+      console.error("Eror Login:", err);
+      setErrorMsg(err.message || 'Terjadi kesalahan jaringan.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,6 +88,13 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Kotak Pesan Eror Merah jika login gagal */}
+          {errorMsg && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm">
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -63,7 +102,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6]"
+                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
                 placeholder="nama@email.com"
                 required
               />
@@ -75,7 +114,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6]"
+                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
                 placeholder="••••••••"
                 required
               />

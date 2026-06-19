@@ -1,121 +1,126 @@
-// app/praktik/page.tsx
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 
-export default function PraktikDebat() {
-  const { user } = useAuth();
-  const [mosi, setMosi] = useState('');
-  const [assertion, setAssertion] = useState('');
-  const [reasoning, setReasoning] = useState('');
-  const [evidence, setEvidence] = useState('');
-  const [linkback, setLinkback] = useState('');
-  const [feedback, setFeedback] = useState('');
+export default function PraktikDebatPage() {
+  const [argumen, setArgumen] = useState('');
   const [loading, setLoading] = useState(false);
+  const [hasilEvaluasi, setHasilEvaluasi] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmitArgumen = async (e: React.FormEvent) => {
+  const handleKirimArgumen = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!argumen.trim()) return;
+
     setLoading(true);
+    setErrorMsg('');
+    setHasilEvaluasi(null);
 
-    // Simulasi AI Evaluator (nanti kita integrasikan dengan Gemini)
-    setTimeout(() => {
-      const skor = Math.floor(Math.random() * 30) + 70; // skor dummy 70-100
+    try {
+      // MODIFIKASI LANGKAH 3: Ambil data session user yang sedang aktif login dari localStorage
+      const session = localStorage.getItem('user_session');
+      const loggedInUser = session ? JSON.parse(session) : null;
 
-      setFeedback(`
-        **Skor AREL: ${skor}/100**\n\n
-        ✅ **Assertion**: Bagus, jelas dan langsung menjawab mosi.\n
-        ✅ **Reasoning**: Penalaran logis cukup kuat.\n
-        ⚠️ **Evidence**: Tambahkan contoh kasus atau data yang lebih spesifik.\n
-        ✅ **Link-back**: Sudah menghubungkan kembali ke mosi.\n\n
-        **Saran Perbaikan**: Perkuat bagian Evidence dengan fakta atau contoh nyata.
-      `);
+      const res = await fetch('/api/evaluate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          // Jika loggedInUser ada, gunakan id_user aslinya. Jika tidak ada, fallback aman ke 1.
+          id_user: loggedInUser ? loggedInUser.id_user : 1, 
+          teks_argumen: argumen,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Terjadi kesalahan saat mengevaluasi.');
+      }
+
+      setHasilEvaluasi(data.data);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Gagal terhubung ke server AI.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#f0fdfa] p-6">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Ruang Praktik Debat</h1>
-        <p className="text-gray-600 mb-8">Susun argumenmu dan dapatkan feedback dari AI</p>
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-8 flex flex-col items-center">
+      <div className="max-w-3xl w-full space-y-8">
+        
+        {/* Header Halaman */}
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-teal-400 mb-2">Laboratorium Evaluator Debat AI</h1>
+          <p className="text-slate-400">Uji kemampuan parameter AREL kamu secara real-time dipandu oleh Juri AI RAG.</p>
+        </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <form onSubmit={handleSubmitArgumen}>
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Mosi / Topik Debat</label>
-              <input
-                type="text"
-                value={mosi}
-                onChange={(e) => setMosi(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl"
-                placeholder="Contoh: Pendidikan gratis adalah hak semua warga negara"
-                required
+        {/* Form Input Teks Mahasiswa */}
+        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
+          <form onSubmit={handleKirimArgumen} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                Mosi Latihan: "Dewan ini mendukung pembatasan penggunaan media sosial bagi pelajar."
+              </label>
+              <textarea
+                value={argumen}
+                onChange={(e) => setArgumen(e.target.value)}
+                rows={5}
+                className="w-full p-4 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-teal-500 transition duration-200 placeholder-slate-500"
+                placeholder="Ketik susunan argumen AREL kamu di sini secara detail..."
+                disabled={loading}
               />
             </div>
-
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">Assertion (Pernyataan)</label>
-                <textarea
-                  value={assertion}
-                  onChange={(e) => setAssertion(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-xl h-24"
-                  placeholder="Negara harus menyediakan pendidikan gratis..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Reasoning (Penalaran)</label>
-                <textarea
-                  value={reasoning}
-                  onChange={(e) => setReasoning(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-xl h-24"
-                  placeholder="Karena pendidikan adalah investasi jangka panjang..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Evidence (Bukti)</label>
-                <textarea
-                  value={evidence}
-                  onChange={(e) => setEvidence(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-xl h-24"
-                  placeholder="Menurut data UNESCO tahun 2024..."
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Link-back (Tautan Balik)</label>
-                <textarea
-                  value={linkback}
-                  onChange={(e) => setLinkback(e.target.value)}
-                  className="w-full p-4 border border-gray-300 rounded-xl h-20"
-                  placeholder="Oleh karena itu, mosi ini harus didukung..."
-                  required
-                />
-              </div>
-            </div>
-
+            
             <button
               type="submit"
-              disabled={loading}
-              className="mt-8 w-full bg-[#14b8a6] hover:bg-[#0f766e] text-white py-4 rounded-xl font-semibold text-lg disabled:bg-gray-400"
+              disabled={loading || !argumen.trim()}
+              className={`w-full py-3 rounded-lg font-bold text-slate-950 transition duration-200 ${
+                loading || !argumen.trim()
+                  ? 'bg-slate-600 cursor-not-allowed text-slate-400'
+                  : 'bg-teal-400 hover:bg-teal-500 shadow-lg shadow-teal-500/20'
+              }`}
             >
-              {loading ? "AI sedang menilai argumen..." : "Kirim Argumen ke AI Evaluator"}
+              {loading ? 'Juri AI Sedang Menganalisis Struktur AREL...' : 'Kirim Argumen Ke Juri AI'}
             </button>
           </form>
 
-          {feedback && (
-            <div className="mt-8 p-6 bg-gray-50 rounded-2xl border border-gray-200">
-              <h3 className="font-semibold mb-4 text-lg">Feedback AI Evaluator:</h3>
-              <pre className="whitespace-pre-wrap text-gray-700 leading-relaxed">{feedback}</pre>
+          {errorMsg && (
+            <div className="mt-4 p-3 bg-red-900/40 border border-red-500 rounded-lg text-red-300 text-sm">
+              ⚠️ {errorMsg}
             </div>
           )}
         </div>
+
+        {/* Panel Hasil Evaluasi & Poin Gamifikasi */}
+        {hasilEvaluasi && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Kartu Skor Gamifikasi */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center">
+                <span className="block text-sm text-slate-400 font-semibold uppercase tracking-wider">Skor Parameter AREL</span>
+                <span className="text-4xl font-extrabold text-teal-400">{hasilEvaluasi.skor_AREL} / 100</span>
+              </div>
+              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center">
+                <span className="block text-sm text-slate-400 font-semibold uppercase tracking-wider">Reward Pengalaman</span>
+                <span className="text-4xl font-extrabold text-amber-400">+{hasilEvaluasi.xp_diperoleh} XP</span>
+              </div>
+            </div>
+
+            {/* Kotak Umpan Balik Akademik */}
+            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-3">
+              <h3 className="text-lg font-bold text-teal-400 flex items-center gap-2">
+                <span>📋</span> Catatan Koreksi Juri AI:
+              </h3>
+              <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line bg-slate-950 p-4 rounded-lg border border-slate-800">
+                {hasilEvaluasi.feedback_ai}
+              </p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

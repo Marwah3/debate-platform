@@ -1,11 +1,17 @@
-import { db } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 
 // Fungsi untuk mengambil data langsung dari MySQL
 async function getSemuaModul() {
   try {
-    const [rows] = await db.query('SELECT * FROM modul ORDER BY urutan ASC');
-    return rows;
+    // Mengambil data dari tabel moduls MySQL
+    const moduls = await prisma.moduls.findMany({
+      orderBy: { 
+        id_modul: 'asc' // atau ganti 'urutan' sesuai kolom order di tabel kamu
+      }
+    });
+    
+    return moduls; // Sudah diganti dari 'rows' menjadi 'moduls'
   } catch (error) {
     console.error("Gagal mengambil data modul:", error);
     return [];

@@ -1,117 +1,95 @@
-// app/dashboard/page.tsx
 'use client';
 
-import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
-export default function Dashboard() {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+export default function DashboardPage() {
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Data awal kosong (akan bertambah nanti)
-  const stats = {
-    totalXP: 0,
-    maxXP: 1500,
-    level: "1",
-    levelName: "Pemula",
-    modulesCompleted: 0,
-    totalModules: 12,
-    argumentsSubmitted: 0,
-    badges: 0,
-  };
+  useEffect(() => {
+    // Ambil data gamifikasi dari API saat halaman di-load
+    fetch('/api/user?id_user=1')
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData.success) {
+          setUserData(resData.data);
+        }
+      })
+      .catch((err) => console.error("Gagal memuat data dasbor:", err))
+      .finally(() => setLoading(false));
+  }, []);
 
-  if (!user) {
-    router.push('/login');
-    return <p>Loading...</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
+        <p className="text-teal-400 font-semibold animate-pulse">Memuat Status Kompetensi Debat...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#f0fdfa] p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* Profile Header */}
-        <div className="bg-white rounded-2xl p-6 flex items-center justify-between shadow mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-[#14b8a6] rounded-full flex items-center justify-center text-white text-4xl">
-              👤
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">{user.username}</h1>
-              <p className="text-gray-600">Level {stats.level} - {stats.levelName}</p>
-            </div>
-          </div>
-
-          {/* XP Progress */}
-          <div className="text-right">
-            <div className="text-sm text-gray-500 mb-1">
-              {stats.totalXP} / {stats.maxXP} XP
-            </div>
-            <div className="w-64 h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="bg-[#14b8a6] h-full rounded-full transition-all"
-                style={{ inlineSize: "0%" }}
-              ></div>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Level {stats.level}</p>
-          </div>
+        {/* Selamat Datang Banner */}
+        <div className="bg-gradient-to-r from-teal-600 to-cyan-700 p-6 rounded-2xl shadow-xl">
+          <h1 className="text-2xl font-bold text-white mb-1">Ahlan Wa Sahlan, {userData?.username || 'Debater'}! 👋</h1>
+          <p className="text-teal-100 text-sm">Siap mengasah argumen AREL kamu hari ini? Tingkatkan levelmu untuk menjadi Debater Utama.</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow flex items-center gap-4">
-            <div className="text-4xl">📚</div>
-            <div>
-              <p className="text-gray-500 text-sm">Total Modul Selesai</p>
-              <p className="text-4xl font-bold text-[#14b8a6]">{stats.modulesCompleted} / {stats.totalModules}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow flex items-center gap-4">
-            <div className="text-4xl">💬</div>
-            <div>
-              <p className="text-gray-500 text-sm">Total Argumen Disubmit</p>
-              <p className="text-4xl font-bold text-[#14b8a6]">{stats.argumentsSubmitted}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow flex items-center gap-4">
-            <div className="text-4xl">🏆</div>
-            <div>
-              <p className="text-gray-500 text-sm">Badge Diraih</p>
-              <p className="text-4xl font-bold text-[#14b8a6]">{stats.badges}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Modul Tersedia & Aktivitas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl p-6 shadow">
-            <h2 className="text-xl font-semibold mb-5">Modul Tersedia</h2>
-            <p className="text-gray-500 italic py-8 text-center">Mulai belajar modul pertama untuk melihat progress</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow">
-            <h2 className="text-xl font-semibold mb-5">Aktivitas Terbaru</h2>
-            <p className="text-gray-500 italic py-8 text-center">Belum ada aktivitas</p>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
-          <button 
-            onClick={() => router.push('/modul')}
-            className="bg-[#14b8a6] hover:bg-[#0f766e] text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3"
-          >
-            📖 Mulai Belajar
-          </button>
+        {/* Baris Kartu Status Gamifikasi */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          <button 
-            onClick={() => router.push('/praktik')}
-            className="bg-[#0f766e] hover:bg-[#115e59] text-white py-5 rounded-2xl text-xl font-semibold flex items-center justify-center gap-3"
-          >
-            ⚔️ Masuk Ruang Praktik
-          </button>
+          {/* Kartu Pencapaian Level */}
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
+            <div>
+              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Peringkat Kompetensi</span>
+              <h2 className="text-3xl font-extrabold text-teal-400 mt-1">LEVEL {userData?.level}</h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-4">Setiap kenaikan level membuka tantangan mosi debat baru yang lebih kompleks.</p>
+          </div>
+
+          {/* Kartu Total Poin XP */}
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
+            <div>
+              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Akumulasi Pengalaman</span>
+              <h2 className="text-3xl font-extrabold text-amber-400 mt-1">{userData?.total_xp} <span className="text-sm font-normal text-slate-400">XP</span></h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-4">XP didapatkan secara objektif dari kalkulasi akurasi parameter argumen oleh Juri AI.</p>
+          </div>
+
+          {/* Kartu Progress Bar Naik Level */}
+          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between space-y-4">
+            <div>
+              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Progress Menuju Level Selanjutnya</span>
+              <div className="flex justify-between text-xs text-slate-400 mt-2 mb-1">
+                <span>{userData?.xp_current_level} / 100 XP</span>
+                <span>{userData?.progress_percentage}%</span>
+              </div>
+              {/* Batang Progress Bar Dinamis */}
+              <div className="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
+                <div 
+                  className="bg-gradient-to-r from-teal-400 to-cyan-400 h-full transition-all duration-500"
+                  style={{ width: `${userData?.progress_percentage}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-teal-400 font-medium">✨ Butuh {userData?.xp_next_level} XP lagi untuk naik level!</p>
+          </div>
+
         </div>
+
+        {/* Tombol Navigasi Menu Utama */}
+        <div className="flex gap-4">
+          <Link href="/modul" className="flex-1 bg-slate-800 hover:bg-slate-750 p-4 rounded-xl border border-slate-700 text-center font-bold text-slate-200 transition">
+            📖 Buka Materi Modul
+          </Link>
+          <Link href="/praktik" className="flex-1 bg-gradient-to-r from-teal-400 to-cyan-500 hover:opacity-90 p-4 rounded-xl text-center font-bold text-slate-950 shadow-lg transition">
+            🎙️ Mulai Praktik Debat AI
+          </Link>
+        </div>
+
       </div>
     </div>
   );
