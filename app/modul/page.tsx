@@ -34,7 +34,7 @@ export default async function ModulPage() {
               <div>
                 <h3 className="text-xl font-semibold text-slate-200">
                   {/* Disesuaikan dengan kolom 'urutan' dan 'judul_modul' sesuai schema database kamu */}
-                  {modul.urutan}. {modul.judul_modul}
+                  {modul.urutan}. {modul.judul}
                 </h3>
                 <p className="text-slate-400 text-sm mt-1">
                   {/* Memotong konten materi sepanjang 100 karakter dengan aman */}

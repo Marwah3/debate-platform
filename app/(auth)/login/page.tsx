@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState(''); // Menggunakan nama state yang sesuai
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(''); // State baru untuk menampung pesan eror
+  const [errorMsg, setErrorMsg] = useState('');
   const { login } = useAuth();
   const router = useRouter();
 
@@ -19,13 +19,10 @@ export default function LoginPage() {
     setErrorMsg('');
 
     try {
-      // 1. Tembak data email & password ke API Backend MySQL
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
       });
 
       const responseData = await res.json();
@@ -34,7 +31,6 @@ export default function LoginPage() {
         throw new Error(responseData.error || 'Gagal masuk ke sistem.');
       }
 
-      // 2. Jika sukses, buat objek user sesuai struktur AuthContext kamu
       const activeUser = {
         id_user: responseData.user.id_user,
         username: responseData.user.nama,
@@ -42,17 +38,13 @@ export default function LoginPage() {
         role: 'user'
       };
 
-      // 3. Simpan session di browser agar bisa dibaca halaman /praktik
       localStorage.setItem('user_session', JSON.stringify(activeUser));
-
-      // 4. Perbarui state di AuthContext global kamu
       login(activeUser);
       
       alert('Login berhasil!');
       router.push('/dashboard');
 
     } catch (err: any) {
-      console.error("Eror Login:", err);
       setErrorMsg(err.message || 'Terjadi kesalahan jaringan.');
     } finally {
       setLoading(false);
@@ -61,13 +53,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Teal Background */}
+      {/* Left Side */}
       <div className="hidden lg:flex w-1/2 bg-[#14b8a6] items-center justify-center text-white">
         <div className="text-center px-12">
           <h1 className="text-5xl font-bold mb-4">Debat Platform</h1>
-          <p className="text-xl opacity-90">
-            Latihan Debat Kapan Saja, Di Mana Saja
-          </p>
+          <p className="text-xl opacity-90">Latihan Debat Kapan Saja, Di Mana Saja</p>
         </div>
       </div>
 
@@ -75,9 +65,7 @@ export default function LoginPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8">
         <div className="w-full max-w-md">
           <div className="flex border-b mb-8">
-            <button 
-              className="flex-1 pb-4 text-center font-medium border-b-2 border-[#14b8a6] text-[#14b8a6]"
-            >
+            <button className="flex-1 pb-4 text-center font-medium border-b-2 border-[#14b8a6] text-[#14b8a6]">
               Masuk
             </button>
             <button 
@@ -88,7 +76,6 @@ export default function LoginPage() {
             </button>
           </div>
 
-          {/* Kotak Pesan Eror Merah jika login gagal */}
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm">
               ⚠️ {errorMsg}
@@ -96,26 +83,28 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleLogin} className="space-y-6">
+            {/* INPUT USERNAME */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
-                placeholder="nama@email.com"
+                placeholder="Ketik username Anda..."
                 required
               />
             </div>
 
+            {/* INPUT PASSWORD */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <input
-                type="text" // Diubah dari 'email' menjadi 'text'
-                value={email} // Tetap biarkan menggunakan variabel state 'email' atau 'username' agar tidak perlu merombak fungsi atas
-                onChange={(e) => setEmail(e.target.value)}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
-                placeholder="Ketik username Anda..."
+                placeholder="••••••••"
                 required
               />
             </div>
@@ -131,10 +120,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Belum punya akun?{' '}
-            <span 
-              onClick={() => router.push('/register')} 
-              className="text-[#14b8a6] cursor-pointer hover:underline"
-            >
+            <span onClick={() => router.push('/register')} className="text-[#14b8a6] cursor-pointer hover:underline">
               Daftar di sini
             </span>
           </p>
