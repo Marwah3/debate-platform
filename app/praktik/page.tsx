@@ -9,12 +9,12 @@ export default function PraktikDebatPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-  const session = localStorage.getItem('user_session');
-  if (!session) {
-    alert('Akses ditolak! Silakan login untuk memulai praktik debat.');
-    window.location.href = '/login';
-  }
-}, []);
+    const session = localStorage.getItem('user_session');
+    if (!session) {
+      alert('Akses ditolak! Silakan login untuk memulai praktik debat.');
+      window.location.href = '/login';
+    }
+  }, []);
 
   const handleKirimArgumen = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +25,7 @@ export default function PraktikDebatPage() {
     setHasilEvaluasi(null);
 
     try {
-      // MODIFIKASI LANGKAH 3: Ambil data session user yang sedang aktif login dari localStorage
+      // Mengambil data session user yang sedang aktif login dari localStorage
       const session = localStorage.getItem('user_session');
       const loggedInUser = session ? JSON.parse(session) : null;
 
@@ -35,8 +35,8 @@ export default function PraktikDebatPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          // Jika loggedInUser ada, gunakan id_user aslinya. Jika tidak ada, fallback aman ke 1.
-          id_user: loggedInUser ? loggedInUser.id_user : 1, 
+          // Mengubah id_user menjadi Number agar sesuai dengan tipe data INT di MySQL kamu
+          id_user: loggedInUser ? Number(loggedInUser.id_user) : null, 
           teks_argumen: argumen,
         }),
       });
