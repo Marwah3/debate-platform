@@ -45,7 +45,7 @@ export default function DashboardPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Selamat Datang Banner */}
-        <div className="bg-gradient-to-r from-teal-600 to-cyan-700 p-6 rounded-2xl shadow-xl">
+        <div className="bg-linear-to-r from-teal-600 to-cyan-700 p-6 rounded-2xl shadow-xl">
           <h1 className="text-2xl font-bold text-white mb-1">Ahlan Wa Sahlan, {userData?.username || 'Debater'}! 👋</h1>
           <p className="text-teal-100 text-sm">Siap mengasah argumen AREL kamu hari ini? Tingkatkan levelmu untuk menjadi Debater Utama.</p>
         </div>
@@ -82,8 +82,8 @@ export default function DashboardPage() {
               {/* Batang Progress Bar Dinamis */}
               <div className="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
                 <div 
-                  className="bg-gradient-to-r from-teal-400 to-cyan-400 h-full transition-all duration-500"
-                  style={{ width: `${userData?.progress_percentage}%` }}
+                  className="bg-linear-to-r from-teal-400 to-cyan-400 h-full transition-all duration-500"
+                  style={{ inlineSize: `${userData?.progress_percentage}%` }}
                 />
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function DashboardPage() {
           <Link href="/modul" className="flex-1 bg-slate-800 hover:bg-slate-750 p-4 rounded-xl border border-slate-700 text-center font-bold text-slate-200 transition">
             📖 Buka Materi Modul
           </Link>
-          <Link href="/praktik" className="flex-1 bg-gradient-to-r from-teal-400 to-cyan-500 hover:opacity-90 p-4 rounded-xl text-center font-bold text-slate-950 shadow-lg transition">
+          <Link href="/praktik" className="flex-1 bg-linear-to-r from-teal-400 to-cyan-500 hover:opacity-90 p-4 rounded-xl text-center font-bold text-slate-950 shadow-lg transition">
             🎙️ Mulai Praktik Debat AI
           </Link>
         </div>

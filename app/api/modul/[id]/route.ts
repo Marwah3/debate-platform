@@ -3,10 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // 1. Ubah tipe data params menjadi Promise
 ) {
   try {
-    const id_modul = Number(params.id);
+    // 2. PERBAIKAN UTAMA: Tunggu Promise params selesai dibuka bungkusnya
+    const unwrappedParams = await params;
+    const id_modul = Number(unwrappedParams.id);
 
     if (isNaN(id_modul)) {
       return NextResponse.json({ error: 'ID Modul tidak valid' }, { status: 400 });

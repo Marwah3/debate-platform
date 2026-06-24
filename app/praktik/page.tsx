@@ -103,17 +103,20 @@ export default function PraktikDebatPage() {
         </div>
 
         {/* Panel Hasil Evaluasi & Poin Gamifikasi */}
+        {/* Panel Hasil Evaluasi & Poin Gamifikasi */}
         {hasilEvaluasi && (
           <div className="space-y-6 animate-fade-in">
             {/* Kartu Skor Gamifikasi */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center">
                 <span className="block text-sm text-slate-400 font-semibold uppercase tracking-wider">Skor Parameter AREL</span>
-                <span className="text-4xl font-extrabold text-teal-400">{hasilEvaluasi.skor_AREL} / 100</span>
+                {/* PERBAIKAN: Sesuaikan dari skor_AREL menjadi skor */}
+                <span className="text-4xl font-extrabold text-teal-400">{hasilEvaluasi.skor} / 100</span>
               </div>
               <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center">
                 <span className="block text-sm text-slate-400 font-semibold uppercase tracking-wider">Reward Pengalaman</span>
-                <span className="text-4xl font-extrabold text-amber-400">+{hasilEvaluasi.xp_diperoleh} XP</span>
+                {/* PERBAIKAN: Sesuaikan dari xp_diperoleh menjadi xp_masuk */}
+                <span className="text-4xl font-extrabold text-amber-400">+{hasilEvaluasi.xp_masuk} XP</span>
               </div>
             </div>
 
@@ -123,7 +126,8 @@ export default function PraktikDebatPage() {
                 <span>📋</span> Catatan Koreksi Juri AI:
               </h3>
               <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line bg-slate-950 p-4 rounded-lg border border-slate-800">
-                {hasilEvaluasi.feedback_ai}
+                {/* PERBAIKAN: Sesuaikan dari feedback_ai menjadi catatan */}
+                {hasilEvaluasi.catatan}
               </p>
             </div>
           </div>
