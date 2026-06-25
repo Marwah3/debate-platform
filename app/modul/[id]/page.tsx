@@ -89,8 +89,8 @@ export default function DetailModulPage({ params }: { params: Promise<{ id: stri
             {modul?.judul || 'Materi Pembelajaran'}
           </h1>
           <p className="text-sm text-slate-400">
-            Format Debat: <span className="text-teal-400 font-semibold">{modul?.format_debat}</span>
-          </p>
+              Cakupan Silabus: <span className="text-teal-400 font-semibold">Kurikulum Global (Multiformat AP, BP, WSD)</span>
+        </p>
         </div>
 
         {/* Isi Konten Utama */}

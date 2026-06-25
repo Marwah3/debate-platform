@@ -32,11 +32,10 @@ model badges {
 }
 
 model moduls {
-  id_modul      Int                 @id @default(autoincrement())
-  judul         String              @db.VarChar(150)
-  konten_materi String              @db.Text
-  format_debat  moduls_format_debat
-  status_lock   Boolean?            @default(true)
+  id_modul      Int       @id @default(autoincrement())
+  judul         String    @db.VarChar(150)
+  konten_materi String    @db.Text
+  status_lock   Boolean?  @default(true)
   urutan        Int
   quizzes       quizzes[]
 }
@@ -63,11 +62,6 @@ model users {
   tanggal_daftar DateTime?  @default(now()) @db.Timestamp(0)
   argumens       argumens[]
   badges         badges[]
-}
-
-enum moduls_format_debat {
-  AP
-  BP
 }
 
 enum users_role {
