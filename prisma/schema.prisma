@@ -68,3 +68,10 @@ enum users_role {
   mahasiswa
   admin
 }
+
+model motions {
+  id_motion  Int      @id @default(autoincrement())
+  teks       String   @db.Text
+  jenis      String
+  created_at DateTime @default(now())
+}

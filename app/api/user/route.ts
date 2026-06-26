@@ -3,51 +3,45 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
+    // Ambil parameter id_user dari URL query string
     const { searchParams } = new URL(request.url);
-    const idUserParam = searchParams.get('id_user') || '1';
-    const id_user = parseInt(idUserParam);
+    const id_user = searchParams.get('id_user');
 
-    // 1. Ambil data user dari tabel users MySQL
-    let user = await prisma.users.findUnique({
-      where: { id_user: id_user }
-    });
-
-    // JIKA USER BELUM ADA, KITA BUAT DUMMY DENGAN SEMUA KOLOM WAJIB SEPERTI DI SCHEMA
-    if (!user) {
-      user = await prisma.users.create({
-        data: {
-          id_user: id_user,
-          nama: 'Debater UNIDA',           // Kolom wajib 1
-          email: 'student@unida.gontor.ac.id', // Kolom wajib 2
-          password: 'hashedpassword123',   // Kolom wajib 3
-          total_xp: 0
-        }
-      });
+    if (!id_user) {
+      return NextResponse.json({ error: 'ID User wajib disertakan' }, { status: 400 });
     }
 
-    // 2. LOGIKA GAMIFIKASI: ALGORITMA LEVELING
-    const xpPerLevel = 100;
-    const currentXp = user.total_xp ?? 0;
-    
-    const levelSaatIni = Math.floor(currentXp / xpPerLevel) + 1;
-    const xpDalamLevelIni = currentXp % xpPerLevel;
-    const sisaXpKeLevelBerikutnya = xpPerLevel - xpDalamLevelIni;
-    const persentaseProgressBar = Math.round((xpDalamLevelIni / xpPerLevel) * 100);
+    // Ambil data profil user real-time dari MySQL
+    const user = await prisma.users.findUnique({
+      where: { id_user: Number(id_user) },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'Akun debater tidak ditemukan' }, { status: 404 });
+    }
+
+    // Hitung persentase progress menuju level selanjutnya untuk komponen progress bar Tailwind
+    const currentXp = user.total_xp || 0;
+    const xpCurrentLevel = currentXp % 100; // Sisa XP di level sekarang
+    const xpNextLevel = 100 - xpCurrentLevel; // Sisa XP yang dibutuhkan untuk naik level
+    const progressPercentage = xpCurrentLevel; // Karena kelipatan per 100 XP, sisa poin langsung menjadi persen
 
     return NextResponse.json({
       success: true,
       data: {
-        username: user.nama, // Menggunakan properti 'nama' yang terbukti ada di tabel kamu
-        total_xp: currentXp,
-        level: levelSaatIni,
-        xp_current_level: xpDalamLevelIni,
-        xp_next_level: sisaXpKeLevelBerikutnya,
-        progress_percentage: persentaseProgressBar
+        id_user: user.id_user,
+        nama: user.nama,
+        email: user.email,
+        current_level: user.current_level,
+        total_xp: user.total_xp,
+        xp_current_level: xpCurrentLevel,
+        xp_next_level: xpNextLevel,
+        progress_percentage: progressPercentage
       }
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Error pada API User Gamifikasi:", error);
-    return NextResponse.json({ error: 'Terjadi kesalahan sistem internal' }, { status: 500 });
+    console.error("❌ GAGAL GET API USER GAMIFIKASI:", error.message || error);
+    return NextResponse.json({ error: 'Gagal memuat status kompetensi user' }, { status: 500 });
   }
 }

@@ -1,133 +1,197 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 
-export default function PraktikDebatPage() {
-  const [argumen, setArgumen] = useState('');
+export default function RuangPraktikPage() {
+  const [userSession, setUserSession] = useState<any>(null);
+  const [teksArgumen, setTeksArgumen] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMosi, setLoadingMosi] = useState(true);
   const [hasilEvaluasi, setHasilEvaluasi] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // State untuk menampung bank mosi dari database MySQL
+  const [allMotions, setAllMotions] = useState<any[]>([]);
+  const [mosiAktif, setMosiAktif] = useState<any>(null);
+
+  // FUNGSI: Mengacak mosi dari daftar mosi yang sukses diambil dari database
+  const handleAcakMosi = useCallback(() => {
+    if (allMotions.length === 0) return;
+    
+    // Filter agar mosi yang sama tidak muncul dua kali berturut-turut jika mosi > 1
+    const daftarMosiTersedia = allMotions.filter(m => m.teks !== mosiAktif?.teks);
+    const mosiTeksPilihan = daftarMosiTersedia.length > 0 ? daftarMosiTersedia : allMotions;
+    
+    const mosiRandom = mosiTeksPilihan[Math.floor(Math.random() * mosiTeksPilihan.length)];
+    setMosiAktif(mosiRandom);
+    setTeksArgumen(''); 
+    setHasilEvaluasi(null); 
+    setErrorMsg('');
+  }, [allMotions, mosiAktif]);
 
   useEffect(() => {
     const session = localStorage.getItem('user_session');
-    if (!session) {
-      alert('Akses ditolak! Silakan login untuk memulai praktik debat.');
-      window.location.href = '/login';
+    if (session) {
+      setUserSession(JSON.parse(session));
     }
+
+    // Ambil data mosi dari database MySQL saat komponen pertama kali dimuat
+    const fetchMotionsFromDb = async () => {
+      try {
+        setLoadingMosi(true);
+        const res = await fetch('/api/motions');
+        const resData = await res.json();
+        if (res.ok && resData.data) {
+          setAllMotions(resData.data);
+          // Set mosi acak pertama kali
+          const firstRandom = resData.data[Math.floor(Math.random() * resData.data.length)];
+          setMosiAktif(firstRandom);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil mosi dari DB:", err);
+      } finally {
+        setLoadingMosi(false);
+      }
+    };
+
+    fetchMotionsFromDb();
   }, []);
 
   const handleKirimArgumen = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!argumen.trim()) return;
-
-    setLoading(true);
-    setErrorMsg('');
-    setHasilEvaluasi(null);
+    if (!teksArgumen.trim()) {
+      alert("Harap ketikkan kerangka argumen debat kamu terlebih dahulu!");
+      return;
+    }
 
     try {
-      // Mengambil data session user yang sedang aktif login dari localStorage
-      const session = localStorage.getItem('user_session');
-      const loggedInUser = session ? JSON.parse(session) : null;
+      setLoading(true);
+      setErrorMsg('');
+      setHasilEvaluasi(null);
 
       const res = await fetch('/api/evaluate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Mengubah id_user menjadi Number agar sesuai dengan tipe data INT di MySQL kamu
-          id_user: loggedInUser ? Number(loggedInUser.id_user) : null, 
-          teks_argumen: argumen,
-        }),
+          id_user: userSession?.id_user || null,
+          teks_argumen: `[Mosi: ${mosiAktif?.teks}] - Argumen Mahasiswa: ${teksArgumen}`
+        })
       });
 
-      const data = await res.json();
+      const resData = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Terjadi kesalahan saat mengevaluasi.');
+        throw new Error(resData.error || 'Gagal memproses penilaian AI.');
       }
 
-      setHasilEvaluasi(data.data);
+      setHasilEvaluasi(resData.data);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Gagal terhubung ke server AI.');
+      console.error(err);
+      setErrorMsg(err.message || 'Terjadi gangguan jaringan dengan Juri AI.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-8 flex flex-col items-center">
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-6 md:p-12 flex flex-col items-center">
       <div className="max-w-3xl w-full space-y-8">
         
-        {/* Header Halaman */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-teal-400 mb-2">Laboratorium Evaluator Debat AI</h1>
-          <p className="text-slate-400">Uji kemampuan parameter AREL kamu secara real-time dipandu oleh Juri AI RAG.</p>
+        {/* Header Bar */}
+        <div className="border-b border-slate-800 pb-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-extrabold text-teal-400 tracking-tight">🎙️ Laboratorium Evaluator Debat AI (RAG)</h1>
+            <p className="text-xs text-slate-400 mt-1">Uji kekuatan model penalaran AREL kamu secara objektif di sini.</p>
+          </div>
+          <Link href="/dashboard" className="text-sm text-slate-400 hover:text-teal-400 transition">
+            🏠 Kembali ke Dasbor
+          </Link>
         </div>
 
-        {/* Form Input Teks Mahasiswa */}
-        <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl">
-          <form onSubmit={handleKirimArgumen} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-300 mb-2">
-                Mosi Latihan: "Dewan ini mendukung pembatasan penggunaan media sosial bagi pelajar."
-              </label>
-              <textarea
-                value={argumen}
-                onChange={(e) => setArgumen(e.target.value)}
-                rows={5}
-                className="w-full p-4 bg-slate-950 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-teal-500 transition duration-200 placeholder-slate-500"
-                placeholder="Ketik susunan argumen AREL kamu di sini secara detail..."
-                disabled={loading}
-              />
-            </div>
-            
-            <button
-              type="submit"
-              disabled={loading || !argumen.trim()}
-              className={`w-full py-3 rounded-lg font-bold text-slate-950 transition duration-200 ${
-                loading || !argumen.trim()
-                  ? 'bg-slate-600 cursor-not-allowed text-slate-400'
-                  : 'bg-teal-400 hover:bg-teal-500 shadow-lg shadow-teal-500/20'
-              }`}
-            >
-              {loading ? 'Juri AI Sedang Menganalisis Struktur AREL...' : 'Kirim Argumen Ke Juri AI'}
-            </button>
-          </form>
-
-          {errorMsg && (
-            <div className="mt-4 p-3 bg-red-900/40 border border-red-500 rounded-lg text-red-300 text-sm">
-              ⚠️ {errorMsg}
-            </div>
-          )}
+        {/* PANEL DOCK MOSI FROM DATABASE */}
+        <div className="bg-slate-950 p-6 rounded-xl border-2 border-teal-500/20 space-y-4 shadow-inner">
+          <div className="flex justify-between items-center">
+            <span className="px-2.5 py-0.5 bg-teal-500/10 text-teal-400 text-xs font-bold rounded-md border border-teal-500/20">
+              {loadingMosi ? '⏳ Membuka bank data...' : `📌 ${mosiAktif?.jenis || 'Mosi Latihan'}`}
+            </span>
+            {!loadingMosi && (
+              <button
+                type="button"
+                onClick={handleAcakMosi}
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition outline-hidden"
+              >
+                🔄 Acak Mosi Latihan Baru
+              </button>
+            )}
+          </div>
+          <p className="text-slate-100 font-extrabold text-lg leading-relaxed">
+            {loadingMosi ? 'Menyiapkan tantangan mosi baru...' : `"${mosiAktif?.teks || 'Belum ada mosi terdaftar.'}"`}
+          </p>
+          <p className="text-xs text-slate-500">
+            *Instruksi: Susun struktur kasus tim pro/kontra kamu merujuk pada penalaran logika utuh AREL untuk mosi di atas.
+          </p>
         </div>
 
-        {/* Panel Hasil Evaluasi & Poin Gamifikasi */}
-        {/* Panel Hasil Evaluasi & Poin Gamifikasi */}
+        {/* Form Penginputan Teks */}
+        <form onSubmit={handleKirimArgumen} className="space-y-4">
+          <div className="flex flex-col space-y-2">
+            <label className="text-sm font-semibold text-slate-300">
+              Ketikan Struktur Argumen Konstruksi Kasus Kamu:
+            </label>
+            <textarea
+              disabled={loading || loadingMosi}
+              value={teksArgumen}
+              onChange={(e) => setTeksArgumen(e.target.value)}
+              placeholder="Contoh: (Assertion) Saya setuju dengan mosi ini karena... (Reasoning) Hubungan sebab-akibatnya adalah... (Evidence) Contoh nyata di status quo..."
+              className="w-full h-48 p-4 bg-slate-950 border border-slate-800 rounded-xl focus:border-teal-500 focus:ring-1 focus:ring-teal-500 text-slate-200 outline-hidden transition text-sm leading-relaxed"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || loadingMosi}
+            className="w-full py-3 bg-linear-to-r from-teal-400 to-cyan-500 hover:opacity-90 text-slate-950 font-black rounded-xl shadow-lg text-sm transition duration-200 flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <span className="animate-pulse">⏳ Juri AI Sedang Membedah Argumenmu...</span>
+            ) : (
+              <>🚀 Kirim ke Juri AI Evaluator</>
+            )}
+          </button>
+        </form>
+
+        {errorMsg && (
+          <div className="p-4 bg-red-950/40 border border-red-500/30 rounded-xl text-red-400 text-sm">
+            ⚠️ {errorMsg}
+          </div>
+        )}
+
+        {/* Box Hasil Penilaian Juri AI */}
         {hasilEvaluasi && (
-          <div className="space-y-6 animate-fade-in">
-            {/* Kartu Skor Gamifikasi */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center">
-                <span className="block text-sm text-slate-400 font-semibold uppercase tracking-wider">Skor Parameter AREL</span>
-                {/* PERBAIKAN: Sesuaikan dari skor_AREL menjadi skor */}
-                <span className="text-4xl font-extrabold text-teal-400">{hasilEvaluasi.skor} / 100</span>
+          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-2xl space-y-6 p-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-700 pb-4 gap-2">
+              <div>
+                <h3 className="text-lg font-bold text-slate-200">📊 Skor Hasil Analisis Juri AI</h3>
+                <p className="text-xs text-slate-400">Dihitung real-time berdasarkan keselarasan petaan Chroma DB.</p>
               </div>
-              <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 text-center">
-                <span className="block text-sm text-slate-400 font-semibold uppercase tracking-wider">Reward Pengalaman</span>
-                {/* PERBAIKAN: Sesuaikan dari xp_diperoleh menjadi xp_masuk */}
-                <span className="text-4xl font-extrabold text-amber-400">+{hasilEvaluasi.xp_masuk} XP</span>
+              <div className="text-center px-4 py-2 bg-slate-950 rounded-lg border border-slate-800">
+                <span className="text-3xl font-black text-teal-400">{hasilEvaluasi.skor_AREL}</span>
+                <span className="text-slate-500 text-xs block">Skor AREL</span>
               </div>
             </div>
 
-            {/* Kotak Umpan Balik Akademik */}
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-xl space-y-3">
-              <h3 className="text-lg font-bold text-teal-400 flex items-center gap-2">
-                <span>📋</span> Catatan Koreksi Juri AI:
-              </h3>
-              <p className="text-slate-300 leading-relaxed text-sm whitespace-pre-line bg-slate-950 p-4 rounded-lg border border-slate-800">
-                {/* PERBAIKAN: Sesuaikan dari feedback_ai menjadi catatan */}
-                {hasilEvaluasi.catatan}
+            <div className="p-4 bg-amber-400/10 border border-amber-500/20 rounded-xl flex items-center justify-between text-xs text-amber-300">
+              <span>✨ Selamat! Kompetensimu meningkat dari latihan mandiri ini.</span>
+              <span className="font-bold bg-amber-400 text-slate-950 px-2 py-0.5 rounded">+{hasilEvaluasi.xp_diperoleh} XP</span>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-bold text-slate-300 flex items-center gap-1">
+                <span>📝</span> Lembar Umpan Balik Akademik (Ulasan):
+              </h4>
+              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line bg-slate-950 p-4 rounded-xl border border-slate-900 font-mono">
+                {hasilEvaluasi.feedback_ai}
               </p>
             </div>
           </div>

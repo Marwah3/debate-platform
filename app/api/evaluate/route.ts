@@ -1,72 +1,92 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { GoogleGenAI } from '@google/genai';
+import { execSync } from 'child_process';
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { teks_argumen, id_user } = body;
+    const { id_user, teks_argumen } = await request.json();
 
-    // 1. Validasi input awal
-    if (!teks_argumen || teks_argumen.trim() === "") {
+    if (!teks_argumen) {
       return NextResponse.json({ error: 'Teks argumen tidak boleh kosong' }, { status: 400 });
     }
 
     // =========================================================================
-    // SIMULASI PROSES EVALUATOR JURI AI RAG (Struktur Kriteria Penilaian AREL)
+    // 1. TAHAP RETRIEVAL (Chroma DB via Python)
     // =========================================================================
-    const skor_assertion = 85;
-    const skor_reasoning = 78;
-    const skor_evidence = 70;
-    const skor_linkback = 80;
-    const total_skor_arel = Math.round((skor_assertion + skor_reasoning + skor_evidence + skor_linkback) / 4);
-    
-    const catatan_koreksi = "Argumen Assertion kamu sudah cukup tegas menyampaikan posisi. Namun, bagian Evidence (bukti) masih berupa klaim sepihak; disarankan menyertakan data riset atau studi kasus riil tentang dampak media sosial pada pelajar untuk memperkuat basis argumen. Pada Link-back, pastikan kesimpulan ditarik lurus kembali ke mosi utama.";
+    let konteksMateriDebat = "";
+    try {
+      const perintahPython = `python query_vector.py "${teks_argumen.replace(/"/g, '\\"')}"`;
+      const hasilBuffer = execSync(perintahPython, { encoding: 'utf-8' });
+      konteksMateriDebat = hasilBuffer.trim();
+    } catch (err) {
+      console.error("⚠️ Gagal mengambil data RAG dari Chroma DB, menggunakan fallback:", err);
+      konteksMateriDebat = "Model argumentasi AREL terdiri dari Assertion (Pernyataan), Reasoning (Penalaran sebab-akibat), Evidence (Bukti/Studi Kasus), dan Link-back (Kaitan kesimpulan).";
+    }
 
-    // 2. Simpan hasil penilaian Juri AI ke MySQL dengan kolom yang SESUAI skema kamu
-    const argumenBaru = await prisma.argumens.create({
-      data: {
-        id_user: id_user ? Number(id_user) : null, // Menerima id_user atau null jika anonim
-        teks_argumen: teks_argumen,                // Sesuai field @db.Text di skema
-        skor_AREL: total_skor_arel,                // Menggunakan huruf kapital AREL sesuai skema
-        feedback_ai: catatan_koreksi,              // Sesuai field feedback_ai di skema
-        xp_diperoleh: 50,                          // Memberikan reward 50 XP ke user setelah praktik
-      },
+    // =========================================================================
+    // 2. TAHAP AUGMENTATION & GENERATION (Gemini Prompt)
+    // =========================================================================
+    const promptRAG = `
+      Kamu adalah seorang Juri Debat Parlementer (Adjudicator) profesional di Universitas Darussalam Gontor.
+      Tugasmu adalah mengevaluasi argumen mahasiswa secara objektif dan ketat berdasarkan Pedoman Konteks Materi asli berikut:
+      ---
+      ${konteksMateriDebat}
+      ---
+
+      Berikut adalah teks argumen konstruksi kasus yang diajukan oleh mahasiswa:
+      "${teks_argumen}"
+
+      Berikan penilaian secara akademis dengan format output JSON murni tanpa markdown (tanpa trik tanda kutip \`\`\`json), tanpa kata pengantar apa pun. Strukturnya wajib tepat seperti ini:
+      {
+        "skor_AREL": (berikan nilai angka 1-100 berdasarkan pemenuhan struktur dan kedalaman dampak sesuai pedoman materi),
+        "feedback_ai": "Tuliskan analisis komprehensif per elemen (Assertion, Reasoning, Evidence, Link-back) dan berikan rekomendasi perbaikan spesifik menggunakan bahasa Indonesia yang santun"
+      }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: promptRAG,
     });
 
-    // 3. Jika user login, kita secara otomatis tambahkan total_xp miliknya di tabel users
+    const textResult = response.text || "{}";
+    const cleanJsonString = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
+    const parsedResult = JSON.parse(cleanJsonString);
+
+    // =========================================================================
+    // 3. TAHAP GAMIFIKASI & SAVE KE MYSQL
+    // =========================================================================
+    const xpDiperoleh = Math.round((parsedResult.skor_AREL || 0) * 0.5);
+
+    const logArgumen = await prisma.argumens.create({
+      data: {
+        id_user: id_user ? Number(id_user) : null,
+        teks_argumen: teks_argumen,
+        skor_AREL: parsedResult.skor_AREL || 0,
+        feedback_ai: parsedResult.feedback_ai || 'Gagal menghasilkan umpan balik otomatis.',
+        xp_diperoleh: xpDiperoleh
+      }
+    });
+
     if (id_user) {
       await prisma.users.update({
         where: { id_user: Number(id_user) },
         data: {
-          total_xp: {
-            increment: 50
-          }
+          total_xp: { increment: xpDiperoleh }
         }
       });
     }
 
-    // 4. Kirim respon sukses ke frontend
     return NextResponse.json({
       success: true,
-      message: 'Evaluasi argumen juri AI berhasil disimpan!',
-      data: {
-        skor: total_skor_arel,
-        detail_skor: {
-          assertion: skor_assertion,
-          reasoning: skor_reasoning,
-          evidence: skor_evidence,
-          linkback: skor_linkback
-        },
-        catatan: catatan_koreksi,
-        xp_masuk: 50
-      }
+      message: 'Evaluasi argumen berbasis AI RAG sukses diproses!',
+      data: logArgumen
     }, { status: 200 });
 
   } catch (error: any) {
-    console.error("❌ EROR UTAMA INTERNAL SERVER 500:", error.message || error);
-    return NextResponse.json({ 
-      error: 'Terjadi kegagalan sistem internal pada server evaluator AI.',
-      detail: error.message 
-    }, { status: 500 });
+    console.error("❌ ERROR API EVALUATOR AI:", error);
+    return NextResponse.json({ error: 'Terjadi kesalahan sistem internal backend' }, { status: 500 });
   }
 }
