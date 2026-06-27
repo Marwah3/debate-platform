@@ -1,33 +1,45 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-900 text-white p-6">
+    <div className="min-h-screen bg-[#F3F3F4] text-[#334F70] flex flex-col items-center justify-center p-6 relative select-none">
+      
       {/* Konten Utama */}
-      <main className="text-center max-w-2xl">
-        <h1 className="text-5xl font-extrabold tracking-tight text-teal-400 mb-4">
-          Platform Pembelajaran Debat Parlementer
+      <div className="max-w-2xl text-center space-y-6 animate-fadeIn">
+        
+        {/* Judul Utama dengan Efek Gradasi */}
+        <h1 className="text-4xl font-black tracking-tight text-[#334F70] sm:text-5xl leading-tight">
+          Platform Pembelajaran <br />
+          <span className="bg-linear-to-r from-[#334F70] to-[#7EA0CF] bg-clip-text text-transparent">
+            Debat Parlementer
+          </span>
         </h1>
-        <p className="text-lg text-slate-300 mb-8">
-          Selamat datang di pusat pelatihan debat digital khusus Mahasiswa Universitas Darussalam Gontor. 
-          Asah kemampuan berpikir kritis dan kuasai kerangka parameter AREL secara interaktif.
+        
+        {/* Deskripsi Sub-judul */}
+        <p className="text-base text-[#334F70]/80 max-w-lg mx-auto leading-relaxed font-medium">
+          Selamat datang di pusat pelatihan debat digital khusus Mahasiswa Universitas Darussalam Gontor. Asah kemampuan berpikir kritis secara interaktif.
         </p>
-
-        {/* Tombol Aksi Menuju Halaman Login */}
-        <div className="flex justify-center gap-4">
-          <Link 
-            href="/login" 
-            className="rounded-md bg-teal-500 px-6 py-3 font-semibold text-slate-900 transition duration-200 hover:bg-teal-400 shadow-lg shadow-teal-500/20"
+        
+        {/* Tombol Utama Menuju Halaman Login dengan Gradasi */}
+        <div className="pt-4">
+          <Link
+            href="/login"
+            className="px-8 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl shadow-md shadow-[#334F70]/10 transition duration-200 inline-block text-sm"
           >
             Mulai Latihan Sekarang
           </Link>
         </div>
-      </main>
 
-      {/* Identitas Kampus di Bagian Bawah */}
-      <footer className="absolute bottom-4 text-xs text-slate-500">
+      </div>
+
+      {/* Footer Akademik di Bagian Bawah */}
+      <footer className="absolute bottom-6 text-center text-xs font-bold text-[#334F70]/60 tracking-wide">
         Teknik Informatika • Universitas Darussalam Gontor
       </footer>
+
     </div>
   );
 }

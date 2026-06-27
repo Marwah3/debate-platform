@@ -1,18 +1,26 @@
-// app/(auth)/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 
-export default function LoginPage() {
-  const [username, setUsername] = useState(''); // Menggunakan nama state yang sesuai
-  const [password, setPassword] = useState('');
+export default function AuthPage() {
+  // State utama untuk memicu efek swipe geser layar (false = Mode Masuk, true = Mode Daftar)
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+
+  // State Form Login
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  
+  // State Form Register
+  const [regForm, setRegForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
+
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const { login } = useAuth();
   const router = useRouter();
 
+  // 1. Logika Aksi Masuk (Login)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -22,14 +30,10 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
       });
-
       const responseData = await res.json();
-
-      if (!res.ok) {
-        throw new Error(responseData.error || 'Gagal masuk ke sistem.');
-      }
+      if (!res.ok) throw new Error(responseData.error || 'Gagal masuk ke sistem.');
 
       const activeUser = {
         id_user: responseData.user.id_user,
@@ -40,10 +44,8 @@ export default function LoginPage() {
 
       localStorage.setItem('user_session', JSON.stringify(activeUser));
       login(activeUser);
-      
       alert('Login berhasil!');
       router.push('/dashboard');
-
     } catch (err: any) {
       setErrorMsg(err.message || 'Terjadi kesalahan jaringan.');
     } finally {
@@ -51,59 +53,110 @@ export default function LoginPage() {
     }
   };
 
+  // 2. Logika Aksi Daftar (Register)
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    if (regForm.password !== regForm.confirmPassword) {
+      alert("Password dan Konfirmasi Password tidak cocok!");
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: regForm.username,
+          email: regForm.email,
+          password: regForm.password,
+        }),
+      });
+      const responseData = await res.json();
+      if (!res.ok) throw new Error(responseData.error || 'Gagal mendaftarkan akun.');
+
+      alert('Registrasi berhasil! Silakan langsung masuk menggunakan akun baru Anda.');
+      setIsRegisterMode(false);
+      setLoginUsername(regForm.username);
+      setRegForm({ username: '', email: '', password: '', confirmPassword: '' });
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Terjadi kesalahan saat mendaftar.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side */}
-      <div className="hidden lg:flex w-1/2 bg-[#14b8a6] items-center justify-center text-white">
-        <div className="text-center px-12">
-          <h1 className="text-5xl font-bold mb-4">Debat Platform</h1>
-          <p className="text-xl opacity-90">Latihan Debat Kapan Saja, Di Mana Saja</p>
+    // PERBAIKAN UTAMA: Mengubah container menjadi w-screen h-screen penuh tanpa margin kaku
+    <div className="w-screen h-screen bg-white relative flex overflow-hidden select-none">
+      
+      {/* ========================================================================= */}
+      {/* PANEL ELEMEN 1: BLOK ANIMASI BACKGROUND DEEP NAVY (SWIPE OVERLAY FULL)     */}
+      {/* ========================================================================= */}
+      <div 
+        className={`hidden lg:flex absolute top-0 bottom-0 w-1/2 bg-[#334F70] text-[#F3F3F4] p-12 flex-col justify-center items-center text-center space-y-6 z-20 transition-all duration-700 ease-in-out ${
+          isRegisterMode ? 'left-1/2' : 'left-0'
+        }`}
+      >
+        <div className="space-y-3 animate-fadeIn">
+          <h1 className="text-5xl font-black tracking-tight text-white">Debat Platform</h1>
+          <p className="text-base text-[#C8D8E8] font-medium max-w-xs mx-auto">
+            Latihan Debat Kapan Saja, Di Mana Saja
+          </p>
+        </div>
+
+        <div className="pt-4">
+          <button
+            onClick={() => { setIsRegisterMode(!isRegisterMode); setErrorMsg(''); }}
+            className="px-8 py-3 border-2 border-[#C8D8E8] text-white text-sm font-bold rounded-xl hover:bg-white/10 transition duration-200"
+          >
+            {isRegisterMode ? 'Sudah Punya Akun? Masuk' : 'Belum Punya Akun? Daftar'}
+          </button>
         </div>
       </div>
 
-      {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-8">
-        <div className="w-full max-w-md">
-          <div className="flex border-b mb-8">
-            <button className="flex-1 pb-4 text-center font-medium border-b-2 border-[#14b8a6] text-[#14b8a6]">
-              Masuk
-            </button>
-            <button 
-              onClick={() => router.push('/register')}
-              className="flex-1 pb-4 text-center font-medium text-gray-400 hover:text-gray-600"
-            >
-              Daftar
-            </button>
+      {/* ========================================================================= */}
+      {/* PANEL ELEMEN 2: FORM MASUK (LOGIN) - BERADA DI SISI KANAN NYATA           */}
+      {/* ========================================================================= */}
+      <div 
+        className={`w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-[#F3F3F4] lg:bg-white transition-all duration-700 ease-in-out absolute top-0 bottom-0 right-0 z-10 ${
+          isRegisterMode ? 'opacity-0 pointer-events-none lg:translate-x-10' : 'opacity-100 translate-x-0'
+        }`}
+      >
+        <div className="w-full max-w-md space-y-6 bg-white lg:bg-transparent p-8 lg:p-0 rounded-2xl border border-[#C8D8E8] lg:border-none shadow-md lg:shadow-none">
+          <div className="text-center lg:text-left">
+            <h2 className="text-3xl font-black text-[#334F70]">Selamat Datang Kembali</h2>
+            <p className="text-sm text-slate-400 mt-1">Masuk untuk melanjutkan latihan debat akademik anda.</p>
           </div>
 
-          {errorMsg && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm">
+          {errorMsg && !isRegisterMode && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
               ⚠️ {errorMsg}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            {/* INPUT USERNAME */}
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-bold text-[#334F70] mb-1">Username</label>
               <input
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
                 placeholder="Ketik username Anda..."
                 required
               />
             </div>
 
-            {/* INPUT PASSWORD */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-bold text-[#334F70] mb-1">Password</label>
               <input
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-xl focus:outline-none focus:border-[#14b8a6] text-black"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
                 placeholder="••••••••"
                 required
               />
@@ -112,20 +165,108 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#14b8a6] hover:bg-[#0f766e] text-white py-4 rounded-xl font-medium text-lg transition"
+              className="w-full bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white py-4 rounded-xl font-bold text-sm transition shadow-md shadow-[#334F70]/10"
             >
               {loading ? 'Memproses...' : 'Masuk'}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-slate-500 lg:hidden">
             Belum punya akun?{' '}
-            <span onClick={() => router.push('/register')} className="text-[#14b8a6] cursor-pointer hover:underline">
+            <span onClick={() => setIsRegisterMode(true)} className="text-[#334F70] font-bold cursor-pointer hover:underline">
               Daftar di sini
             </span>
           </p>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* PANEL ELEMEN 3: FORM DAFTAR (REGISTER) - BERADA DI SISI KIRI NYATA           */}
+      {/* ========================================================================= */}
+      <div 
+        className={`w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-[#F3F3F4] lg:bg-white transition-all duration-700 ease-in-out absolute top-0 bottom-0 left-0 z-10 ${
+          isRegisterMode ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none lg:-translate-x-10'
+        }`}
+      >
+        <div className="w-full max-w-md space-y-5 bg-white lg:bg-transparent p-8 lg:p-0 rounded-2xl border border-[#C8D8E8] lg:border-none shadow-md lg:shadow-none">
+          <div className="text-center lg:text-left">
+            <h2 className="text-3xl font-black text-[#334F70]">Registrasi Akun Baru</h2>
+            <p className="text-sm text-slate-400 mt-1">Buat akun debater akademik kamu sekarang.</p>
+          </div>
+
+          {errorMsg && isRegisterMode && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
+              ⚠️ {errorMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-[#334F70] mb-1">Username</label>
+              <input
+                type="text"
+                value={regForm.username}
+                onChange={(e) => setRegForm({...regForm, username: e.target.value})}
+                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                placeholder="Buat username unik..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-[#334F70] mb-1">Email</label>
+              <input
+                type="email"
+                value={regForm.email}
+                onChange={(e) => setRegForm({...regForm, email: e.target.value})}
+                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                placeholder="nama@email.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-[#334F70] mb-1">Password</label>
+              <input
+                type="password"
+                value={regForm.password}
+                onChange={(e) => setRegForm({...regForm, password: e.target.value})}
+                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-[#334F70] mb-1">Konfirmasi Password</label>
+              <input
+                type="password"
+                value={regForm.confirmPassword}
+                onChange={(e) => setRegForm({...regForm, confirmPassword: e.target.value})}
+                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white py-4 rounded-xl font-bold text-sm transition shadow-md shadow-[#334F70]/10"
+            >
+              {loading ? 'Mendaftar...' : 'Daftar Akun ✓'}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-slate-500 lg:hidden">
+            Sudah punya akun?{' '}
+            <span onClick={() => setIsRegisterMode(false)} className="text-[#334F70] font-bold cursor-pointer hover:underline">
+              Masuk di sini
+            </span>
+          </p>
+        </div>
+      </div>
+
     </div>
   );
 }

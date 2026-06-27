@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,10 +11,8 @@ export default function DashboardPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    // 1. Ambil data session login dari localStorage browser
     const session = localStorage.getItem('user_session');
     
-    // 2. PROTEKSI Halaman: Jika data login tidak ditemukan, kembalikan ke gerbang login
     if (!session) {
       alert('Akses ditolak! Silakan masuk ke akun Anda terlebih dahulu.');
       window.location.href = '/login';
@@ -22,19 +21,16 @@ export default function DashboardPage() {
 
     const loggedInUser = JSON.parse(session);
 
-    // 3. Mengambil data User dan daftar Modul secara paralel dari API
     const fetchDataDasbor = async () => {
       try {
         setLoading(true);
         
-        // Ambil data user dari database
         const resUser = await fetch(`/api/user?id_user=${loggedInUser.id_user}`);
         const resUserData = await resUser.json();
         if (resUserData.success) {
           setUserData(resUserData.data);
         }
 
-        // Ambil daftar modul teoretis dari database
         const resModul = await fetch('/api/modul');
         const resModulData = await resModul.json();
         if (resModulData.success) {
@@ -56,117 +52,117 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center">
-        <p className="text-teal-400 font-semibold animate-pulse">Memuat Status Kompetensi Debat...</p>
+      <div className="min-h-screen bg-[#F3F3F4] text-[#334F70] flex items-center justify-center">
+        <p className="text-[#334F70] font-bold animate-pulse text-lg">Memuat Status Kompetensi Debat...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 p-6 md:p-12">
+    <div className="min-h-screen bg-[#F3F3F4] text-[#334F70] p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Selamat Datang Banner */}
-        <div className="bg-linear-to-r from-teal-600 to-cyan-700 p-6 rounded-2xl shadow-xl">
-          {/* PERBAIKAN: Menggunakan .nama sesuai schema.prisma kamu */}
-          <h1 className="text-2xl font-bold text-white mb-1">Ahlan Wa Sahlan, {userData?.nama || 'Debater'}! 👋</h1>
-          <p className="text-teal-100 text-sm">Siap mengasah argumen AREL kamu hari ini? Tingkatkan levelmu untuk menjadi Debater Utama.</p>
+        {/* Selamat Datang Banner - Deep Navy to Soft Cobalt Gradient */}
+        <div className="bg-linear-to-r from-[#334F70] to-[#7EA0CF] p-8 rounded-2xl shadow-md text-white">
+          <h1 className="text-3xl font-black mb-1">Ahlan Wa Sahlan, {userData?.nama || 'Debater'}! 👋</h1>
+          <p className="text-[#C8D8E8] text-sm font-medium">Siap mengasah argumen AREL kamu hari ini? Tingkatkan levelmu untuk menjadi Debater Utama.</p>
         </div>
 
-        {/* Baris Kartu Status Gamifikasi */}
+        {/* Baris Kartu Status Gamifikasi - Ice Blue Theme */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Kartu Pencapaian Level */}
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
+          <div className="bg-[#C8D8E8] p-6 rounded-xl border border-[#7EA0CF]/40 flex flex-col justify-between shadow-xs">
             <div>
-              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Peringkat Kompetensi</span>
-              {/* PERBAIKAN: Menggunakan .current_level sesuai schema.prisma kamu */}
-              <h2 className="text-3xl font-extrabold text-teal-400 mt-1">LEVEL {userData?.current_level || 1}</h2>
+              <span className="text-xs font-bold uppercase text-[#334F70]/70 tracking-wider">Peringkat Kompetensi</span>
+              <h2 className="text-3xl font-black text-[#334F70] mt-1">LEVEL {userData?.current_level || 1}</h2>
             </div>
-            <p className="text-xs text-slate-400 mt-4">Setiap kenaikan level membuka tantangan mosi debat baru yang lebih kompleks.</p>
+            <p className="text-xs text-[#334F70]/80 mt-4 leading-relaxed">Setiap kenaikan level membuka tantangan mosi debat baru yang lebih kompleks.</p>
           </div>
 
           {/* Kartu Total Poin XP */}
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between">
+          <div className="bg-[#C8D8E8] p-6 rounded-xl border border-[#7EA0CF]/40 flex flex-col justify-between shadow-xs">
             <div>
-              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Akumulasi Pengalaman</span>
-              {/* PERBAIKAN: Menggunakan .total_xp sesuai schema.prisma kamu */}
-              <h2 className="text-3xl font-extrabold text-amber-400 mt-1">{userData?.total_xp || 0} <span className="text-sm font-normal text-slate-400">XP</span></h2>
+              <span className="text-xs font-bold uppercase text-[#334F70]/70 tracking-wider">Akumulasi Pengalaman</span>
+              <h2 className="text-3xl font-black text-[#334F70] mt-1">{userData?.total_xp || 0} <span className="text-sm font-normal text-[#334F70]/80">XP</span></h2>
             </div>
-            <p className="text-xs text-slate-400 mt-4">XP didapatkan secara objektif dari kalkulasi akurasi parameter argumen oleh Juri AI.</p>
+            <p className="text-xs text-[#334F70]/80 mt-4 leading-relaxed">XP didapatkan secara objektif dari kalkulasi akurasi parameter argumen oleh Juri AI.</p>
           </div>
 
           {/* Kartu Progress Bar Naik Level */}
-          <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col justify-between space-y-4">
+          <div className="bg-[#C8D8E8] p-6 rounded-xl border border-[#7EA0CF]/40 flex flex-col justify-between space-y-4 shadow-xs">
             <div>
-              <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">Progress Menuju Level</span>
-              <div className="flex justify-between text-xs text-slate-400 mt-2 mb-1">
-                {/* Perhitungan sisa batas level secara logis berkelanjutan */}
+              <span className="text-xs font-bold uppercase text-[#334F70]/70 tracking-wider">Progress Menuju Level</span>
+              <div className="flex justify-between text-xs font-bold text-[#334F70] mt-2 mb-1">
                 <span>{(userData?.total_xp % 100) || 0} / 100 XP</span>
                 <span>{((userData?.total_xp % 100)) || 0}%</span>
               </div>
+              
               {/* Batang Progress Bar Dinamis */}
-              <div className="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-800">
+              <div className="w-full bg-[#F3F3F4] rounded-full h-3 overflow-hidden border border-[#7EA0CF]/30">
                 <div 
-                  className="bg-linear-to-r from-teal-400 to-cyan-400 h-full transition-all duration-500"
-                  // PERBAIKAN: Menggunakan inlineSize menggantikan width agar linter CSS tidak protes
+                  className="bg-[#334F70] h-full rounded-full transition-all duration-500"
                   style={{ inlineSize: `${(userData?.total_xp % 100) || 0}%` }}
                 />
               </div>
             </div>
-            <p className="text-xs text-teal-400 font-medium">✨ Butuh {100 - ((userData?.total_xp % 100) || 0)} XP lagi untuk naik level!</p>
+            <p className="text-xs text-[#334F70] font-bold">✨ Butuh {100 - ((userData?.total_xp % 100) || 0)} XP lagi untuk naik level!</p>
           </div>
 
         </div>
 
         {/* Section List Modul Dinamis dari Database */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-200 flex items-center gap-2">
+          <h2 className="text-xl font-black text-[#334F70] flex items-center gap-2">
             <span>📖</span> Alur Pembelajaran Silabus Debat
           </h2>
 
           {errorMsg && (
-            <div className="p-4 bg-red-950/40 border border-red-500/30 rounded-xl text-red-400 text-sm">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
               ⚠️ {errorMsg}
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {modules.map((modul) => {
-              const isLocked = modul.status_lock;
+              // AMANKAN PROGRESS PERSONAL: 
+              // Modul terkunci secara dinamis jika urutan modul lebih besar daripada level kompetensi user saat ini.
+              // Kecuali untuk Bab 1 (Urutan 1) yang selalu terbuka untuk akun baru.
+              const userLevel = userData?.current_level || 1;
+              const isLocked = modul.urutan > 1 && modul.urutan > userLevel;
 
               return (
                 <div 
                   key={modul.id_modul}
-                  className={`bg-slate-800 rounded-xl border transition-all duration-200 flex flex-col justify-between overflow-hidden shadow-lg ${
+                  className={`bg-white rounded-2xl border transition-all duration-200 flex flex-col justify-between overflow-hidden shadow-md ${
                     isLocked 
-                      ? 'border-slate-800/80 opacity-60' 
-                      : 'border-slate-700 hover:border-teal-500/50'
+                      ? 'border-[#C8D8E8] opacity-60' 
+                      : 'border-[#C8D8E8] hover:border-[#7EA0CF]'
                   }`}
                 >
                   <div className="p-6 space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-teal-400 uppercase tracking-wider bg-teal-400/10 px-2 py-0.5 rounded">
+                      <span className="text-xs font-bold text-[#334F70] uppercase tracking-wider bg-[#C8D8E8] px-2.5 py-1 rounded-md">
                         Kelas Teori Debat
                       </span>
-                      <span className="text-xs font-semibold text-slate-500">
+                      <span className="text-xs font-bold text-slate-400">
                         Urutan {modul.urutan}
                       </span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-200 line-clamp-2">
+                    <h3 className="text-lg font-extrabold text-[#334F70] line-clamp-2 leading-snug">
                       {modul.judul}
                     </h3>
                   </div>
 
                   <div className="p-6 pt-0">
                     {isLocked ? (
-                      <div className="w-full py-2.5 bg-slate-900/60 border border-slate-800 rounded-lg text-center text-sm font-medium text-slate-500 flex items-center justify-center gap-2 cursor-not-allowed">
+                      <div className="w-full py-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-center text-sm font-bold text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed">
                         <span>🔒</span> Modul Terkunci
                       </div>
                     ) : (
                       <Link 
                         href={`/modul/${modul.id_modul}`}
-                        className="block w-full py-2.5 bg-teal-400 hover:bg-teal-500 text-slate-950 text-center text-sm font-bold rounded-lg transition duration-200"
+                        className="block w-full py-3 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white text-center text-sm font-black rounded-xl transition shadow-sm"
                       >
                         Buka Materi Pembelajaran →
                       </Link>
@@ -180,7 +176,7 @@ export default function DashboardPage() {
 
         {/* Akses Pintasan Cepat Laboratorium AI */}
         <div className="pt-2">
-          <Link href="/praktik" className="block w-full bg-linear-to-r from-teal-400 to-cyan-500 hover:opacity-90 p-4 rounded-xl text-center font-bold text-slate-950 shadow-lg shadow-teal-500/5 transition">
+          <Link href="/praktik" className="block w-full bg-linear-to-r from-[#334F70] to-[#7EA0CF] hover:opacity-95 p-4 rounded-xl text-center font-black text-white shadow-md shadow-[#334F70]/10 transition">
             🎙️ Masuk Laboratorium Evaluator Debat AI (RAG)
           </Link>
         </div>
