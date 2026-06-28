@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,6 +49,14 @@ export default function DashboardPage() {
     fetchDataDasbor();
   }, []);
 
+  // Fungsi penanganan keluar sistem (Logout)
+  const handleLogout = () => {
+    if (confirm('Apakah Anda yakin ingin keluar dari dashboard?')) {
+      localStorage.removeItem('user_session');
+      window.location.href = '/login'; // Kembali ke halaman login/registrasi
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F3F3F4] text-[#334F70] flex items-center justify-center">
@@ -62,11 +69,42 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#F3F3F4] text-[#334F70] p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Selamat Datang Banner - Deep Navy to Soft Cobalt Gradient */}
-        <div className="bg-linear-to-r from-[#334F70] to-[#7EA0CF] p-8 rounded-2xl shadow-md text-white">
-          <h1 className="text-3xl font-black mb-1">Ahlan Wa Sahlan, {userData?.nama || 'Debater'}! 👋</h1>
+       {/* Banner Selamat Datang */}
+      <div className="bg-linear-to-r from-[#334F70] to-[#7EA0CF] p-8 rounded-2xl shadow-md text-white flex justify-between items-center">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black tracking-tight">Ahlan Wa Sahlan, {userData?.nama || 'Debater'}! 👋</h1>
           <p className="text-[#C8D8E8] text-sm font-medium">Siap mengasah argumen AREL kamu hari ini? Tingkatkan levelmu untuk menjadi Debater Utama.</p>
         </div>
+        
+        {/* Tombol Ikon Log Out Line-Art (Sesuai Gambar Referensi) */}
+        <button
+          onClick={handleLogout}
+          title="Keluar Akun"
+          className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition border border-white/10 group flex items-center justify-center shadow-xs"
+        >
+          <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            strokeWidth="2.5" 
+            stroke="currentColor" 
+            className="w-6 h-6 group-hover:translate-x-0.5 transition-transform duration-150"
+          >
+            {/* Garis Box/Pintu */}
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15" 
+            />
+            {/* Garis Panah Keluar */}
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              d="M18 12H9m9 0l-3-3m3 3l-3 3" 
+            />
+          </svg>
+        </button>
+      </div>
 
         {/* Baris Kartu Status Gamifikasi - Ice Blue Theme */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -102,7 +140,7 @@ export default function DashboardPage() {
               <div className="w-full bg-[#F3F3F4] rounded-full h-3 overflow-hidden border border-[#7EA0CF]/30">
                 <div 
                   className="bg-[#334F70] h-full rounded-full transition-all duration-500"
-                  style={{ inlineSize: `${(userData?.total_xp % 100) || 0}%` }}
+                  style={{ width: `${(userData?.total_xp % 100) || 0}%` }}
                 />
               </div>
             </div>
@@ -123,11 +161,8 @@ export default function DashboardPage() {
             </div>
           )}
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {modules.map((modul) => {
-              // AMANKAN PROGRESS PERSONAL: 
-              // Modul terkunci secara dinamis jika urutan modul lebih besar daripada level kompetensi user saat ini.
-              // Kecuali untuk Bab 1 (Urutan 1) yang selalu terbuka untuk akun baru.
               const userLevel = userData?.current_level || 1;
               const isLocked = modul.urutan > 1 && modul.urutan > userLevel;
 

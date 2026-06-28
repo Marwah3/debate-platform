@@ -13,9 +13,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Teks argumen tidak boleh kosong' }, { status: 400 });
     }
 
-    // =========================================================================
     // 1. TAHAP RETRIEVAL (Chroma DB via Python)
-    // =========================================================================
+  
     let konteksMateriDebat = "";
     try {
       const perintahPython = `python query_vector.py "${teks_argumen.replace(/"/g, '\\"')}"`;
@@ -26,9 +25,8 @@ export async function POST(request: Request) {
       konteksMateriDebat = "Model argumentasi AREL terdiri dari Assertion (Pernyataan), Reasoning (Penalaran sebab-akibat), Evidence (Bukti/Studi Kasus), dan Link-back (Kaitan kesimpulan).";
     }
 
-    // =========================================================================
     // 2. TAHAP AUGMENTATION & GENERATION (Gemini Prompt)
-    // =========================================================================
+
     const promptRAG = `
       Kamu adalah seorang Juri Debat Parlementer (Adjudicator) profesional di Universitas Darussalam Gontor.
       Tugasmu adalah mengevaluasi argumen mahasiswa secara objektif dan ketat berdasarkan Pedoman Konteks Materi asli berikut:
@@ -55,9 +53,8 @@ export async function POST(request: Request) {
     const cleanJsonString = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsedResult = JSON.parse(cleanJsonString);
 
-    // =========================================================================
     // 3. TAHAP GAMIFIKASI & SAVE KE MYSQL
-    // =========================================================================
+
     const xpDiperoleh = Math.round((parsedResult.skor_AREL || 0) * 0.5);
 
     const logArgumen = await prisma.argumens.create({

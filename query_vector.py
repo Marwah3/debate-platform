@@ -4,7 +4,7 @@ import chromadb
 from chromadb.utils import embedding_functions
 
 def cari_konteks(teks_kueri):
-    # 1. Hubungkan ke Chroma DB lokal yang sudah kita isi kemarin
+    # 1. Hubungkan ke Chroma DB lokal 
     client = chromadb.PersistentClient(path="./chroma_data")
     
     # 2. Gunakan model embedding yang sama persis saat ingest data
