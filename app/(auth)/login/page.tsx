@@ -35,17 +35,24 @@ export default function AuthPage() {
       const responseData = await res.json();
       if (!res.ok) throw new Error(responseData.error || 'Gagal masuk ke sistem.');
 
+      // PERBAIKAN DINAMIS: Membaca role langsung dari respon database MySQL backend
       const activeUser = {
         id_user: responseData.user.id_user,
         username: responseData.user.nama,
         email: responseData.user.email,
-        role: 'user'
+        role: responseData.user.role // ← Membaca role asli ('user' atau 'admin')
       };
 
       localStorage.setItem('user_session', JSON.stringify(activeUser));
       login(activeUser);
-      alert('Login berhasil!');
-      router.push('/dashboard');
+      alert(`Login berhasil! Selamat datang, ${activeUser.username}.`);
+      
+      // LOGIKA ROUTING BERBASIS HAK AKSES PROPOSAL
+      if (activeUser.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Terjadi kesalahan jaringan.');
     } finally {
@@ -89,7 +96,6 @@ export default function AuthPage() {
   };
 
   return (
-    // PERBAIKAN UTAMA: Mengubah container menjadi w-screen h-screen penuh tanpa margin kaku
     <div className="w-screen h-screen bg-white relative flex overflow-hidden select-none">
       
       {/* ========================================================================= */}
@@ -252,7 +258,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white py-4 rounded-xl font-bold text-sm transition shadow-md shadow-[#334F70]/10"
+              className="w-full bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white py-4 rounded-xl font-bold text-sm transition duration-150 shadow-md shadow-[#334F70]/10"
             >
               {loading ? 'Mendaftar...' : 'Daftar Akun ✓'}
             </button>

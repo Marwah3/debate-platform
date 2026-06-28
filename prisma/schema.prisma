@@ -56,7 +56,7 @@ model users {
   nama           String     @db.VarChar(100)
   email          String     @unique(map: "email") @db.VarChar(100)
   password       String     @db.VarChar(255)
-  role           users_role @default(mahasiswa)
+  role           users_role @default(user) // ← PERBAIKAN: Menggunakan default 'user' agar sinkron dengan Next.js
   total_xp       Int?       @default(0)
   current_level  Int?       @default(1)
   tanggal_daftar DateTime?  @default(now()) @db.Timestamp(0)
@@ -64,8 +64,9 @@ model users {
   badges         badges[]
 }
 
+// PERBAIKAN ENUM: Mengubah 'mahasiswa' menjadi 'user' demi kestabilan linter string di frontend
 enum users_role {
-  mahasiswa
+  user
   admin
 }
 

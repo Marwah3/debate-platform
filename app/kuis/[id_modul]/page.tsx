@@ -7,10 +7,14 @@ export default function LembarKuisDinamisPage({ params }: { params: Promise<{ id
   const unwrappedParams = React.use(params);
   const idModulUrl = unwrappedParams.id_modul;
 
+  // SINKRONISASI NAVIGASI INTERNAL UNTUK LEVEL DAN LOMPAT BAB
+  const currentIdNum = Number(idModulUrl);
+  const TOTAL_MODUL = 4;
+
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  
+    
   const [jawabanTerpilih, setJawabanTerpilih] = useState<{ [key: number]: string }>({});
   const [skor, setSkor] = useState<number | null>(null);
   const [sudahSubmit, setSudahSubmit] = useState(false);
@@ -147,13 +151,10 @@ export default function LembarKuisDinamisPage({ params }: { params: Promise<{ id
                     const isSelected = jawabanTerpilih[soal.id_quiz] === hurufOpsi;
                     const isCorrect = soal.kunci_jawaban === hurufOpsi;
                     
-                    // Default State: Latar belakang Ice Blue transparan lembut
                     let bgClass = "bg-[#C8D8E8]/30 border-[#C8D8E8] hover:border-[#7EA0CF] text-[#334F70] font-medium";
                     
-                    // Selected State
                     if (isSelected) bgClass = "bg-[#7EA0CF]/20 border-[#334F70] text-[#334F70] font-bold";
                     
-                    // Post-submission Evaluation State
                     if (sudahSubmit) {
                       if (isCorrect) bgClass = "bg-green-100 border-green-500 text-green-800 font-extrabold";
                       else if (isSelected && !isCorrect) bgClass = "bg-red-100 border-red-400 text-red-800 font-medium";
@@ -201,26 +202,41 @@ export default function LembarKuisDinamisPage({ params }: { params: Promise<{ id
           ) : (
             <>
               {skor !== null && skor >= 70 ? (
+                // PERBAIKAN UTAMA: Menyusun 3 tombol sejajar, presisi, dan seimbang demi mengaktifkan kembali tombol lanjut bab
                 <div className="flex flex-col sm:flex-row gap-3 w-full">
                   <Link
                     href="/dashboard"
-                    className="flex-1 py-3.5 bg-white hover:bg-slate-50 border border-[#C8D8E8] text-[#334F70] font-bold rounded-xl text-center text-sm transition shadow-xs"
+                    className="flex-1 py-3.5 bg-white hover:bg-slate-50 border-2 border-[#C8D8E8] text-[#334F70] font-black rounded-xl text-center text-sm transition shadow-xs flex items-center justify-center gap-1.5"
                   >
-                    🏠 Kembali ke Dasbor
+                    💡 Dasbor
                   </Link>
                   
                   <Link
                     href="/praktik"
-                    className="flex-1 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl text-center text-sm shadow-md transition"
+                    className="flex-1 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-90 text-white font-black rounded-xl text-center text-sm shadow-md shadow-[#334F70]/10 transition flex items-center justify-center gap-1.5"
                   >
                     🎙️ Ruang AI (Praktik)
                   </Link>
+
+                  {currentIdNum < TOTAL_MODUL ? (
+                    <Link
+                      href={`/modul/${currentIdNum + 1}`}
+                      className="flex-1 py-3.5 bg-white hover:bg-slate-50 border-2 border-[#334F70] text-[#334F70] font-black rounded-xl text-center text-sm transition shadow-xs flex items-center justify-center gap-1.5 animate-fadeIn"
+                    >
+                      Bab Selanjutnya ➔
+                    </Link>
+                  ) : (
+                    <div className="flex-1 py-3.5 bg-[#C8D8E8]/40 border-2 border-dashed border-[#C8D8E8] text-[#334F70]/50 font-black rounded-xl text-center text-sm flex items-center justify-center gap-1.5 cursor-not-allowed">
+                      🎓 Silabus Selesai
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="flex flex-col sm:flex-row gap-3 w-full">
+                // Kondisi jika nilai di bawah 70 (Gagal)
+                <div className="flex flex-col sm:flex-row gap-4 w-full">
                   <Link
                     href={`/modul/${idModulUrl}`}
-                    className="flex-1 py-3.5 bg-white hover:bg-slate-50 border border-[#C8D8E8] text-[#334F70] font-bold rounded-xl text-center text-sm transition shadow-xs"
+                    className="flex-1 py-3.5 bg-white hover:bg-slate-50 border-2 border-[#C8D8E8] text-[#334F70] font-black rounded-xl text-center text-sm transition shadow-xs flex items-center justify-center gap-1.5"
                   >
                     📖 Baca Ulang Materi
                   </Link>
@@ -232,7 +248,7 @@ export default function LembarKuisDinamisPage({ params }: { params: Promise<{ id
                       setSudahSubmit(false);
                       document.getElementById('kuis-top')?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    className="flex-1 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl text-center text-sm shadow-md transition"
+                    className="flex-1 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl text-center text-sm shadow-md transition flex items-center justify-center gap-1.5"
                   >
                     🔄 Ulangi Evaluasi Kuis
                   </button>

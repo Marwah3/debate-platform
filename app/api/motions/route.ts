@@ -1,48 +1,88 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// 1. GET: Mengambil semua mosi untuk diacak di halaman praktik
+// =========================================================================
+// 1. GET: MENAMPILKAN SEMUA MOSI
+// =========================================================================
 export async function GET() {
   try {
-    // PERBAIKAN: Gunakan 'as any' untuk menembus cache tipe data Prisma Client di VS Code
-    const daftarMosi = await (prisma as any).motions.findMany({
-      orderBy: { id_motion: 'desc' }
+    // PERBAIKAN: Menggunakan prisma.motion (singular) sesuai generate client
+    const allMotions = await prisma.motions.findMany({
+      orderBy: {
+        id_motion: 'desc',
+      },
     });
 
-    if (daftarMosi.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: [{ teks: "Dewan ini menyesali tren budaya kerja berlebihan (hustle culture).", jenis: "Mosi Penilaian/Evaluasi (Value Motion)" }]
-      });
-    }
+    return NextResponse.json({
+      success: true,
+      data: allMotions,
+    }, { status: 200 });
 
-    return NextResponse.json({ success: true, data: daftarMosi }, { status: 200 });
   } catch (error: any) {
-    console.error("❌ GAGAL GET MOTIONS:", error);
-    return NextResponse.json({ error: 'Gagal memuat bank mosi dari database' }, { status: 500 });
+    console.error("ERROR GET MOTIONS API:", error);
+    return NextResponse.json({ error: 'Gagal memuat daftar mosi dari database internal.' }, { status: 500 });
   }
 }
 
-// 2. POST: Menerima input mosi baru dari Admin
+// =========================================================================
+// 2. POST: MENAMBAH MOSI BARU
+// =========================================================================
 export async function POST(request: Request) {
   try {
     const { teks, jenis } = await request.json();
 
     if (!teks || !jenis) {
-      return NextResponse.json({ error: 'Teks mosi dan jenis mosi wajib diisi' }, { status: 400 });
+      return NextResponse.json({ error: 'Teks mosi dan jenis kategori wajib diisi!' }, { status: 400 });
     }
 
-    // PERBAIKAN: Gunakan 'as any' agar build production Next.js sukses tanpa terhambat linter
-    const mosiBaru = await (prisma as any).motions.create({
+    // PERBAIKAN: Menggunakan prisma.motion
+    const newMotion = await prisma.motions.create({
       data: {
-        teks: teks,
-        jenis: jenis
-      }
+        teks: teks.trim(),
+        jenis: jenis,
+      },
     });
 
-    return NextResponse.json({ success: true, data: mosiBaru, message: 'Mosi baru berhasil ditambahkan oleh Admin!' }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      message: 'Mosi latihan berhasil disimpan.',
+      data: newMotion,
+    }, { status: 201 });
+
   } catch (error: any) {
-    console.error("❌ GAGAL POST MOTION:", error);
-    return NextResponse.json({ error: 'Gagal menyimpan mosi baru' }, { status: 500 });
+    console.error("ERROR POST MOTION API:", error);
+    return NextResponse.json({ error: 'Gagal menyimpan mosi baru ke database.' }, { status: 500 });
+  }
+}
+
+// =========================================================================
+// 3. DELETE: MENGHAPUS MOSI
+// =========================================================================
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const idStr = searchParams.get('id');
+
+    if (!idStr) {
+      return NextResponse.json({ error: 'Parameter ID mosi tidak ditemukan.' }, { status: 400 });
+    }
+
+    const idMotion = Number(idStr);
+
+    // PERBAIKAN: Menggunakan prisma.motion
+    await prisma.motions.delete({
+      where: {
+        id_motion: idMotion,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Mosi berhasil dihapus dari sistem database.',
+    }, { status: 200 });
+
+  } catch (error: any) {
+    console.error("ERROR DELETE MOTION API:", error);
+    return NextResponse.json({ error: 'Gagal menghapus mosi. Pastikan ID valid.' }, { status: 500 });
   }
 }

@@ -6,45 +6,41 @@ export async function POST(request: Request) {
     const { username, email, password } = await request.json();
 
     if (!username || !email || !password) {
-      return NextResponse.json({ error: 'Semua kolom wajib diisi!' }, { status: 400 });
+      return NextResponse.json({ error: 'Semua kolom formulir wajib diisi' }, { status: 400 });
     }
 
-    // 1. Cek apakah email atau username sudah pernah terdaftar di MySQL
-    const userLama = await prisma.users.findFirst({
-      where: {
-        OR: [
-          { email: email },
-          { nama: username }
-        ]
-      }
+    // Cek apakah user sudah terdaftar
+    const userExist = await prisma.users.findFirst({
+      where: { nama: username }
     });
 
-    if (userLama) {
-      return NextResponse.json({ error: 'Username atau Email sudah terdaftar!' }, { status: 400 });
+    if (userExist) {
+      return NextResponse.json({ error: 'Username sudah digunakan' }, { status: 400 });
     }
 
-    // 2. Simpan data akun mahasiswa baru ke tabel users MySQL
-    const userBaru = await prisma.users.create({
+    // LOGIKA OTOMATIS: Deteksi kata kunci nama untuk hak akses admin
+    const namaLow = username.toLowerCase().trim();
+    const roleOtomatis = (namaLow === 'admin' || namaLow === 'pengurus' || namaLow.startsWith('admin')) ? 'admin' : 'user';
+
+    const newUser = await prisma.users.create({
       data: {
-        nama: username,     // Kolom database 'nama' kita isi dengan username
-        email: email,       // Kolom database 'email'
-        password: password, // Kolom database 'password'
-        total_xp: 0         // Default XP awal mahasiswa
+        nama: username,
+        email: email,
+        password: password,
+        role: roleOtomatis as any, // ← Mengunci hak akses admin secara otomatis di MySQL saat register
+        total_xp: 0,
+        current_level: 1
       }
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Registrasi Akun Berhasil!',
-      data: {
-        id_user: userBaru.id_user,
-        username: userBaru.nama,
-        email: userBaru.email
-      }
+      message: 'Akun berhasil terdaftar',
+      user: newUser
     }, { status: 201 });
 
   } catch (error: any) {
-    console.error("EROR DI API REGISTER MYSQL:", error);
-    return NextResponse.json({ error: 'Terjadi kesalahan sistem saat mendaftarkan akun' }, { status: 500 });
+    console.error("ERROR REGISTRASI:", error);
+    return NextResponse.json({ error: 'Gagal memproses pendaftaran internal' }, { status: 500 });
   }
 }
