@@ -140,8 +140,7 @@ export default function DashboardPage() {
               <div className="w-full bg-[#F3F3F4] rounded-full h-3 overflow-hidden border border-[#7EA0CF]/30">
                 <div 
                   className="bg-[#334F70] h-full rounded-full transition-all duration-500"
-                  style={{ width: `${(userData?.total_xp % 100) || 0}%` }}
-                />
+                  style={{ inlineSize: `${(userData?.total_xp % 100) || 0}%` }}          />
               </div>
             </div>
             <p className="text-xs text-[#334F70] font-bold">✨ Butuh {100 - ((userData?.total_xp % 100) || 0)} XP lagi untuk naik level!</p>
@@ -208,6 +207,15 @@ export default function DashboardPage() {
             })}
           </div>
         </div>
+       {/* Akses Pintasan Cepat Buku Catatan */}
+        <div className="w-full mb-4">
+          <Link 
+            href="/dashboard/notes" 
+            className="block w-full bg-white border border-[#C8D8E8] hover:bg-slate-50 p-4 rounded-xl text-center font-black text-[#334F70] shadow-sm transition"
+          >
+            📝 Buka Buku Catatan Evaluasi Mandiri
+          </Link>
+        </div>
 
         {/* Akses Pintasan Cepat Laboratorium AI */}
         <div className="pt-2">
@@ -215,6 +223,8 @@ export default function DashboardPage() {
             🎙️ Masuk Laboratorium Evaluator Debat AI (RAG)
           </Link>
         </div>
+
+        
 
       </div>
     </div>

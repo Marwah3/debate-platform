@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Teks argumen tidak boleh kosong' }, { status: 400 });
     }
 
-    // 1. TAHAP RETRIEVAL (Chroma DB via Python)
+    // 1. TAHAP RETRIEVAL 
   
     let konteksMateriDebat = "";
     try {

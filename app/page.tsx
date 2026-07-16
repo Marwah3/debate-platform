@@ -24,14 +24,15 @@ export default function LandingPage() {
         </p>
         
         {/* Tombol Utama Menuju Halaman Login dengan Gradasi */}
-        <div className="pt-4">
-          <Link
-            href="/login"
-            className="px-8 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl shadow-md shadow-[#334F70]/10 transition duration-200 inline-block text-sm"
-          >
-            Mulai Latihan Sekarang
-          </Link>
-        </div>
+       {/* Tombol Utama Menuju Halaman Login dengan Gradasi */}
+<div className="pt-4">
+  <Link
+    href="/dashboard"
+    className="px-8 py-3.5 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl inline-block shadow-md transition"
+  >
+    Mulai Latihan Sekarang
+  </Link>
+</div>
 
       </div>
 

@@ -10,6 +10,7 @@ export default function ManajemenMosiPage() {
   // State Form Input Mosi Baru
   const [teksMosi, setTeksMosi] = useState('');
   const [jenisMosi, setJenisMosi] = useState('Mosi Kebijakan (Policy Motion)');
+  const [bahasaMosi, setBahasaMosi] = useState('id'); // ← State baru untuk pilihan bahasa
 
   // 1. Fungsi Mengambil (Fetch) Data Mosi dari API
   const fetchMotions = async () => {
@@ -21,8 +22,8 @@ export default function ManajemenMosiPage() {
         setMotions(resData.data);
       }
     } catch (err) {
-      console.error('Gagal memuat mosi:', err);
-    } finally {
+      console.warn('Gagal memuat mosi:', err);
+    } finally { // ← UBAH DARI 'filter' MENJADI 'finally' DI SINI
       setLoading(false);
     }
   };
@@ -44,7 +45,11 @@ export default function ManajemenMosiPage() {
       const res = await fetch('/api/motions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teks: teksMosi, jenis: jenisMosi }),
+        body: JSON.stringify({ 
+          teks: teksMosi, 
+          jenis: jenisMosi, 
+          bahasa: bahasaMosi // ← Parameter bahasa dikirim langsung ke API backend
+        }),
       });
 
       if (!res.ok) {
@@ -54,6 +59,7 @@ export default function ManajemenMosiPage() {
 
       alert('Mosi latihan baru berhasil ditambahkan!');
       setTeksMosi(''); // Kosongkan input
+      setBahasaMosi('id'); // Reset ke default bahasa Indonesia
       fetchMotions(); // Refresh tabel data
     } catch (err: any) {
       alert(err.message);
@@ -95,7 +101,7 @@ export default function ManajemenMosiPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* ========================================================================= */}
-        {/* PANEL KIRI: FORMULIR TAMBAH MOSI BARU                                      */}
+        {/* PANEL KIRI: FORMULIR TAMBAH MOSI BARU                                     */}
         {/* ========================================================================= */}
         <div className="bg-white p-6 rounded-2xl border border-[#C8D8E8] shadow-sm space-y-4">
           <h2 className="text-lg font-extrabold border-b border-[#F3F3F4] pb-2">➕ Tambah Mosi Baru</h2>
@@ -113,6 +119,22 @@ export default function ManajemenMosiPage() {
                 <option value="Mosi Kebijakan (Policy Motion)">Mosi Kebijakan (Policy Motion)</option>
                 <option value="Mosi Prinsip/Nilai (Principle Motion)">Mosi Prinsip/Nilai (Principle Motion)</option>
                 <option value="Mosi Penilaian/Evaluasi (Value Motion)">Mosi Penilaian/Evaluasi (Value Motion)</option>
+              </select>
+            </div>
+
+            {/* ================= SELEKSI BAHASA MOSI BARU ================= */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                🌐 Bahasa Pengantar Mosi
+              </label>
+              <select
+                value={bahasaMosi}
+                onChange={(e) => setBahasaMosi(e.target.value)}
+                className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-sm font-semibold transition"
+              >
+                <option value="id">🇮🇩 Bahasa Indonesia</option>
+                <option value="en">🇬🇧 English Format</option>
+                <option value="ar">🇦🇪 Arabic Format</option>
               </select>
             </div>
 
@@ -162,6 +184,7 @@ export default function ManajemenMosiPage() {
                   <tr className="bg-[#F3F3F4] border-b border-[#C8D8E8] text-xs font-bold text-slate-400 uppercase tracking-wider">
                     <th className="p-4 pl-6 w-16 text-center">No</th>
                     <th className="p-4">Pernyataan Mosi</th>
+                    <th className="p-4 w-32 text-center">Bahasa</th>
                     <th className="p-4 w-52">Jenis Kategori</th>
                     <th className="p-4 w-24 text-center">Aksi</th>
                   </tr>
@@ -170,8 +193,23 @@ export default function ManajemenMosiPage() {
                   {motions.map((item, index) => (
                     <tr key={item.id_motion} className="hover:bg-slate-50/80 transition duration-150">
                       <td className="p-4 pl-6 text-center text-slate-400 font-bold">{index + 1}</td>
-                      <td className="p-4 font-bold text-[#334F70] pr-6 leading-relaxed">
+                      <td 
+                        className="p-4 font-bold text-[#334F70] pr-6 leading-relaxed"
+                        dir={item.bahasa === 'ar' ? 'rtl' : 'ltr'}
+                      >
                         "{item.teks}"
+                      </td>
+                      {/* ================= BARIS BADGE BAHASA ADAPTIF ================= */}
+                      <td className="p-4 text-center">
+                        <span className={`px-2 py-1 text-xs font-black rounded-md border ${
+                          item.bahasa === 'en' 
+                            ? 'bg-blue-50 text-blue-600 border-blue-200' 
+                            : item.bahasa === 'ar' 
+                            ? 'bg-emerald-50 text-emerald-600 border-emerald-200' 
+                            : 'bg-slate-50 text-slate-600 border-slate-200'
+                        }`}>
+                          {item.bahasa === 'en' ? '🇬🇧 EN' : item.bahasa === 'ar' ? '🇸🇦 AR' : '🇮🇩 ID'}
+                        </span>
                       </td>
                       <td className="p-4">
                         <span className="px-2.5 py-1 bg-[#C8D8E8]/50 text-[#334F70] text-xs font-bold rounded-md border border-[#7EA0CF]/10">
@@ -180,6 +218,7 @@ export default function ManajemenMosiPage() {
                       </td>
                       <td className="p-4 text-center">
                         <button
+                          type="button"
                           onClick={() => handleHapusMosi(item.id_motion)}
                           className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-xs font-bold rounded-lg transition"
                         >

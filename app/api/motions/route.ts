@@ -1,88 +1,67 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// =========================================================================
-// 1. GET: MENAMPILKAN SEMUA MOSI
-// =========================================================================
+// 1. [GET] Mengambil seluruh mosi dari database MySQL
 export async function GET() {
   try {
-    // PERBAIKAN: Menggunakan prisma.motion (singular) sesuai generate client
-    const allMotions = await prisma.motions.findMany({
+    const daftarMosi = await prisma.motions.findMany({
       orderBy: {
-        id_motion: 'desc',
-      },
+        created_at: 'desc'
+      }
     });
-
-    return NextResponse.json({
-      success: true,
-      data: allMotions,
-    }, { status: 200 });
-
+    return NextResponse.json({ success: true, data: daftarMosi }, { status: 200 });
   } catch (error: any) {
-    console.error("ERROR GET MOTIONS API:", error);
-    return NextResponse.json({ error: 'Gagal memuat daftar mosi dari database internal.' }, { status: 500 });
+    console.warn("❌ API GET MOTIONS ERROR:", error.message || error);
+    return NextResponse.json({ error: 'Gagal mengambil data mosi dari database' }, { status: 500 });
   }
 }
 
-// =========================================================================
-// 2. POST: MENAMBAH MOSI BARU
-// =========================================================================
+// 2. [POST] Menyimpan mosi baru dari input Admin
 export async function POST(request: Request) {
   try {
-    const { teks, jenis } = await request.json();
+    const body = await request.json();
+    const { teks, jenis, bahasa } = body;
 
-    if (!teks || !jenis) {
-      return NextResponse.json({ error: 'Teks mosi dan jenis kategori wajib diisi!' }, { status: 400 });
+    if (!teks?.trim() || !jenis?.trim()) {
+      return NextResponse.json({ error: 'Teks mosi dan jenis mosi wajib diisi.' }, { status: 400 });
     }
 
-    // PERBAIKAN: Menggunakan prisma.motion
-    const newMotion = await prisma.motions.create({
+    const bahasaValid = bahasa && ['id', 'en', 'ar'].includes(bahasa) ? bahasa : 'id';
+
+    const mosiBaru = await prisma.motions.create({
       data: {
         teks: teks.trim(),
-        jenis: jenis,
-      },
+        jenis: jenis.trim(),
+        bahasa: bahasaValid
+      }
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Mosi latihan berhasil disimpan.',
-      data: newMotion,
-    }, { status: 201 });
-
+    return NextResponse.json({ success: true, data: mosiBaru }, { status: 201 });
   } catch (error: any) {
-    console.error("ERROR POST MOTION API:", error);
-    return NextResponse.json({ error: 'Gagal menyimpan mosi baru ke database.' }, { status: 500 });
+    console.warn("❌ API POST MOTIONS ERROR:", error.message || error);
+    return NextResponse.json({ error: 'Gagal menyimpan mosi baru ke database' }, { status: 500 });
   }
 }
 
-// =========================================================================
-// 3. DELETE: MENGHAPUS MOSI
-// =========================================================================
+// 3. [DELETE] Menghapus mosi berdasarkan ID parameter URL
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const idStr = searchParams.get('id');
+    const id = searchParams.get('id');
 
-    if (!idStr) {
-      return NextResponse.json({ error: 'Parameter ID mosi tidak ditemukan.' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'ID mosi diperlukan.' }, { status: 400 });
     }
 
-    const idMotion = Number(idStr);
-
-    // PERBAIKAN: Menggunakan prisma.motion
     await prisma.motions.delete({
       where: {
-        id_motion: idMotion,
-      },
+        id_motion: Number(id)
+      }
     });
 
-    return NextResponse.json({
-      success: true,
-      message: 'Mosi berhasil dihapus dari sistem database.',
-    }, { status: 200 });
-
+    return NextResponse.json({ success: true, message: 'Mosi berhasil dihapus' }, { status: 200 });
   } catch (error: any) {
-    console.error("ERROR DELETE MOTION API:", error);
-    return NextResponse.json({ error: 'Gagal menghapus mosi. Pastikan ID valid.' }, { status: 500 });
+    console.warn("❌ API DELETE MOTIONS ERROR:", error.message || error);
+    return NextResponse.json({ error: 'Gagal menghapus mosi dari database' }, { status: 500 });
   }
 }

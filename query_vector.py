@@ -7,7 +7,7 @@ def cari_konteks(teks_kueri):
     # 1. Hubungkan ke Chroma DB lokal 
     client = chromadb.PersistentClient(path="./chroma_data")
     
-    # 2. Gunakan model embedding yang sama persis saat ingest data
+    # 2. model embedding
     st_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
     
     collection = client.get_or_create_collection(
@@ -17,7 +17,7 @@ def cari_konteks(teks_kueri):
     
     # 3. Cari 2 potongan teks (chunks) yang paling mirip dengan argumen mahasiswa
     results = collection.query(
-        query_texts=[teks_kueri],
+      query_texts=[teks_kueri],
         n_results=2
     )
     
