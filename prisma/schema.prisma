@@ -37,6 +37,8 @@ model moduls {
   konten_materi String    @db.Text
   status_lock   Boolean?  @default(true)
   urutan        Int
+  bahasa        String    @default("id") // ← Ditambahkan untuk Fitur 3 Bahasa ('id', 'en', 'ar')
+  created_at    DateTime  @default(now())  // ← Ditambahkan untuk pencatatan waktu
   quizzes       quizzes[]
 }
 
