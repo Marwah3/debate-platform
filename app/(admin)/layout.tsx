@@ -30,7 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogout = () => {
     localStorage.removeItem('user_session');
-    window.location.href = '/login';
+    window.location.href = '/'; //;
   };
 
   if (!isAdmin) {
@@ -81,6 +81,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               📈 Monitoring Anggota
             </Link>
+
+            <Link 
+              href="/admin/modul" 
+              className={`px-4 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+                pathname === '/admin/modul' ? 'bg-[#7EA0CF]/20 text-white border-l-4 border-[#7EA0CF]' : 'hover:bg-white/5 text-[#C8D8E8] hover:text-white'
+              }`}
+            >
+              📚 Manajemen Silabus
+            </Link>
+
+            <Link 
+            href="/admin/landing" 
+            className={`px-4 py-3 rounded-xl text-sm font-bold transition flex items-center gap-2 ${
+                pathname === '/admin/landing' ? 'bg-[#7EA0CF]/20 text-white border-l-4 border-[#7EA0CF]' : 'hover:bg-white/5 text-[#C8D8E8] hover:text-white'
+              }`}
+          >
+            🌐 Kelola Landing Page
+          </Link>
           </nav>
         </div>
 

@@ -1,46 +1,59 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
 
-export async function POST(request: Request) {
+const prisma = new PrismaClient();
+
+export async function POST(req: Request) {
   try {
-    const { username, email, password } = await request.json();
+    const body = await req.json();
+    // Tangkap 'username' dari request frontend, lalu petakan ke field 'nama'
+    const { username, email, password } = body;
 
+    // 1. Validasi input
     if (!username || !email || !password) {
-      return NextResponse.json({ error: 'Semua kolom formulir wajib diisi' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'Semua field wajib diisi!' },
+        { status: 400 }
+      );
     }
 
-    // Cek apakah user sudah terdaftar
-    const userExist = await prisma.users.findFirst({
-      where: { nama: username }
+    // 2. Cek apakah email atau nama sudah terdaftar di database
+    const existingUser = await prisma.users.findFirst({
+      where: {
+        OR: [
+          { email: email },
+          { nama: username }, // 💡 Gunakan 'nama', bukan 'username'
+        ],
+      },
     });
 
-    if (userExist) {
-      return NextResponse.json({ error: 'Username sudah digunakan' }, { status: 400 });
+    if (existingUser) {
+      return NextResponse.json(
+        { message: 'Nama/Username atau Email sudah terdaftar!' },
+        { status: 400 }
+      );
     }
 
-    // LOGIKA OTOMATIS: Deteksi kata kunci nama untuk hak akses admin
-    const namaLow = username.toLowerCase().trim();
-    const roleOtomatis = (namaLow === 'admin' || namaLow === 'pengurus' || namaLow.startsWith('admin')) ? 'admin' : 'user';
-
+    // 3. Simpan user baru ke database
     const newUser = await prisma.users.create({
       data: {
-        nama: username,
+        nama: username, // 💡 Petakan ke kolom 'nama' di skema Prisma
         email: email,
         password: password,
-        role: roleOtomatis as any, // ← Mengunci hak akses admin secara otomatis di MySQL saat register
-        total_xp: 0,
-        current_level: 1
-      }
+        role: 'user',
+      },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Akun berhasil terdaftar',
-      user: newUser
-    }, { status: 201 });
-
-  } catch (error: any) {
-    console.error("ERROR REGISTRASI:", error);
-    return NextResponse.json({ error: 'Gagal memproses pendaftaran internal' }, { status: 500 });
+      message: 'Registrasi berhasil! Silakan login.',
+      user: { id: newUser.id_user, nama: newUser.nama, email: newUser.email },
+    });
+  } catch (error) {
+    console.error('Error register:', error);
+    return NextResponse.json(
+      { message: 'Terjadi kesalahan internal server' },
+      { status: 500 }
+    );
   }
 }

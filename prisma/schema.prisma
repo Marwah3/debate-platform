@@ -90,3 +90,48 @@ model notes {
 
   @@index([id_user], map: "id_user")
 }
+
+model landing_stats {
+  id_stats       Int     @id @default(autoincrement())
+  total_anggota  String  @default("48+") @db.VarChar(50)
+  total_prestasi String  @default("12") @db.VarChar(50)
+  total_lomba    String  @default("20+") @db.VarChar(50)
+  hero_img       String? @db.Text
+}
+
+model anggota {
+  id_anggota Int       @id @default(autoincrement())
+  nama       String    @db.VarChar(150)
+  posisi     String    @db.VarChar(100)
+  inisial    String    @db.VarChar(10)
+  created_at DateTime? @default(now())
+}
+
+model prestasi {
+  id_prestasi   Int       @id @default(autoincrement())
+  juara         String    @db.VarChar(100)
+  lomba         String    @db.VarChar(200)
+  tahun         String    @db.VarChar(20)
+  penyelenggara String    @db.VarChar(200)
+  img_url       String?   @db.Text
+  created_at    DateTime? @default(now())
+}
+
+model berita_acara {
+  id_berita  Int       @id @default(autoincrement())
+  title      String    @db.VarChar(200)
+  date       String    @db.VarChar(100)
+  tag        String    @db.VarChar(50)
+  desc       String?   @db.Text
+  img_url    String?   @db.Text
+  created_at DateTime? @default(now())
+}
+
+model lomba {
+  id_lomba   Int       @id @default(autoincrement())
+  nama       String    @db.VarChar(200)
+  level      String    @db.VarChar(50)
+  kota       String    @db.VarChar(100)
+  img_url    String?   @db.Text
+  created_at DateTime? @default(now())
+}

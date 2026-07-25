@@ -6,8 +6,8 @@ export async function GET() {
   try {
     const daftarMateri = await prisma.moduls.findMany({
       orderBy: {
-        urutan: 'asc' // Diurutkan berdasarkan kolom 'urutan' di database
-      }
+        urutan: 'asc', // Diurutkan berdasarkan kolom 'urutan' di database
+      },
     });
     return NextResponse.json({ success: true, data: daftarMateri }, { status: 200 });
   } catch (error: any) {
@@ -20,9 +20,9 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, content, order_num, language } = body;
+    const { title, content, order_num, language, status_lock } = body;
 
-    if (!title?.trim() || !content?.trim() || !order_num) {
+    if (!title?.trim() || !content?.trim() || order_num === undefined || order_num === null) {
       return NextResponse.json({ error: 'Judul, konten materi, dan nomor urut bab wajib diisi.' }, { status: 400 });
     }
 
@@ -31,15 +31,72 @@ export async function POST(request: Request) {
         judul: title.trim(),
         konten_materi: content.trim(),
         urutan: Number(order_num),
-        //@ts-ignore
+        // @ts-ignore
         bahasa: language || 'id',
-        status_lock: true // Default terkunci untuk user baru sebelum lulus kuis bab sebelumnya
-      }
+        status_lock: status_lock !== undefined ? Boolean(status_lock) : true,
+      },
     });
 
     return NextResponse.json({ success: true, data: materiBaru }, { status: 201 });
   } catch (error: any) {
     console.warn("❌ API POST MODUL ERROR:", error.message || error);
     return NextResponse.json({ error: 'Gagal menyimpan materi baru ke database' }, { status: 500 });
+  }
+}
+
+// 3. [PUT] Mengedit / memperbarui bab materi silabus yang ada
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const { id_modul, title, content, order_num, language, status_lock } = body;
+
+    if (!id_modul) {
+      return NextResponse.json({ error: 'ID Modul wajib disertakan.' }, { status: 400 });
+    }
+
+    if (!title?.trim() || !content?.trim() || order_num === undefined || order_num === null) {
+      return NextResponse.json({ error: 'Judul, konten materi, dan nomor urut bab wajib diisi.' }, { status: 400 });
+    }
+
+    const materiUpdated = await prisma.moduls.update({
+      where: { id_modul: Number(id_modul) },
+      data: {
+        judul: title.trim(),
+        konten_materi: content.trim(),
+        urutan: Number(order_num),
+        // @ts-ignore
+        bahasa: language || 'id',
+        status_lock: Boolean(status_lock),
+      },
+    });
+
+    return NextResponse.json({ success: true, data: materiUpdated }, { status: 200 });
+  } catch (error: any) {
+    console.warn("❌ API PUT MODUL ERROR:", error.message || error);
+    return NextResponse.json({ error: 'Gagal memperbarui materi di database' }, { status: 500 });
+  }
+}
+
+// 4. [DELETE] Menghapus bab materi dari silabus
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'ID Modul tidak ditemukan.' }, { status: 400 });
+    }
+
+    await prisma.moduls.delete({
+      where: { id_modul: Number(id) },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Materi silabus berhasil dihapus!',
+    }, { status: 200 });
+  } catch (error: any) {
+    console.warn("❌ API DELETE MODUL ERROR:", error.message || error);
+    return NextResponse.json({ success: false, error: 'Gagal menghapus materi dari database' }, { status: 500 });
   }
 }
