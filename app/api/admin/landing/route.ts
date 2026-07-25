@@ -1,29 +1,25 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
+export const dynamic = 'force-dynamic';
 
-// POST / PUT: Update Statistik atau Tambah Berita/Prestasi Baru
-export async function POST(req: Request) {
+// POST: Menambah data (Stats, Berita, Prestasi, Lomba)
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
+    const body = await request.json();
     const { type, payload } = body;
 
-    // 1. Simpan/Update Statistik Hero
+    if (!type || !payload) {
+      return NextResponse.json({ success: false, message: 'Type dan payload wajib diisi' }, { status: 400 });
+    }
+
+    // 1. UPDATE STATISTIK HERO
     if (type === 'stats') {
       const existingStats = await prisma.landing_stats.findFirst();
+
       if (existingStats) {
-        await prisma.landing_stats.update({
+        const updated = await prisma.landing_stats.update({
           where: { id_stats: existingStats.id_stats },
-          data: {
-            total_anggota: payload.total_anggota,
-            total_prestasi: payload.total_prestasi,
-            total_lomba: payload.total_lomba,
-            hero_img: payload.hero_img || existingStats.hero_img,
-          },
-        });
-      } else {
-        await prisma.landing_stats.create({
           data: {
             total_anggota: payload.total_anggota,
             total_prestasi: payload.total_prestasi,
@@ -31,69 +27,103 @@ export async function POST(req: Request) {
             hero_img: payload.hero_img || null,
           },
         });
+        return NextResponse.json({ success: true, data: updated });
+      } else {
+        const created = await prisma.landing_stats.create({
+          data: {
+            total_anggota: payload.total_anggota,
+            total_prestasi: payload.total_prestasi,
+            total_lomba: payload.total_lomba,
+            hero_img: payload.hero_img || null,
+          },
+        });
+        return NextResponse.json({ success: true, data: created });
       }
-      return NextResponse.json({ success: true, message: 'Statistik berhasil diperbarui!' });
     }
 
-    // 2. Tambah Berita Acara Baru
+    // 2. TAMBAH BERITA ACARA
     if (type === 'berita') {
-      await prisma.berita_acara.create({
+      const newBerita = await prisma.berita_acara.create({
         data: {
           title: payload.title,
           date: payload.date,
-          tag: payload.tag,
-          desc: payload.desc,
-          img_url: payload.img_url || null,
+          tag: payload.tag || 'Seminar',
+          desc: payload.desc || '',
+          img_url: payload.img_url || '',
         },
       });
-      return NextResponse.json({ success: true, message: 'Berita acara berhasil ditambahkan!' });
+      return NextResponse.json({ success: true, data: newBerita });
     }
 
-    // 3. Tambah Prestasi Baru
+    // 3. TAMBAH PRESTASI
     if (type === 'prestasi') {
-      await prisma.prestasi.create({
+      const newPrestasi = await prisma.prestasi.create({
         data: {
           juara: payload.juara,
           lomba: payload.lomba,
           tahun: payload.tahun,
           penyelenggara: payload.penyelenggara,
-          img_url: payload.img_url || null,
+          img_url: payload.img_url || '',
         },
       });
-      return NextResponse.json({ success: true, message: 'Prestasi berhasil ditambahkan!' });
+      return NextResponse.json({ success: true, data: newPrestasi });
     }
 
-    return NextResponse.json({ success: false, message: 'Tipe aksi tidak valid' }, { status: 400 });
-  } catch (error) {
-    console.error("Error saving admin landing data:", error);
-    return NextResponse.json({ success: false, message: 'Gagal menyimpan data ke database' }, { status: 500 });
+    
+    // 4. TAMBAH LOMBA DIIKUTI
+    if (type === 'lomba') {
+      const newLomba = await prisma.lomba.create({
+        data: {
+          nama_lomba: payload.nama_lomba,
+          kategori: payload.kategori || 'Nasional',
+          lokasi: payload.lokasi,
+          image_url: payload.image_url || '',
+        },
+      });
+      return NextResponse.json({ success: true, data: newLomba });
+    }
+      
+    return NextResponse.json({ success: false, message: 'Type tidak dikenali' }, { status: 400 });
+  } catch (error: any) {
+    console.error('Error Admin Landing POST:', error);
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
 
-// DELETE: Hapus Item Berita atau Prestasi
-export async function DELETE(req: Request) {
+// DELETE: Menghapus data (Berita, Prestasi, Lomba)
+export async function DELETE(request: Request) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
-    const id = Number(searchParams.get('id'));
+    const id = searchParams.get('id');
 
     if (!type || !id) {
-      return NextResponse.json({ success: false, message: 'ID atau type tidak ditemukan' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Type dan ID wajib disertakan' }, { status: 400 });
     }
 
+    const numericId = Number(id);
+
+    // Hapus Berita
     if (type === 'berita') {
-      await prisma.berita_acara.delete({ where: { id_berita: id } });
-      return NextResponse.json({ success: true, message: 'Berita berhasil dihapus!' });
+      await prisma.berita_acara.delete({ where: { id_berita: numericId } });
+      return NextResponse.json({ success: true, message: 'Berita berhasil dihapus' });
     }
 
+    // Hapus Prestasi
     if (type === 'prestasi') {
-      await prisma.prestasi.delete({ where: { id_prestasi: id } });
-      return NextResponse.json({ success: true, message: 'Prestasi berhasil dihapus!' });
+      await prisma.prestasi.delete({ where: { id_prestasi: numericId } });
+      return NextResponse.json({ success: true, message: 'Prestasi berhasil dihapus' });
     }
 
-    return NextResponse.json({ success: false, message: 'Tipe tidak valid' }, { status: 400 });
-  } catch (error) {
-    console.error("Error deleting landing item:", error);
-    return NextResponse.json({ success: false, message: 'Gagal menghapus data' }, { status: 500 });
+    // Hapus Lomba
+    if (type === 'lomba') {
+      await prisma.lomba.delete({ where: { id_lomba: numericId } });
+      return NextResponse.json({ success: true, message: 'Lomba berhasil dihapus' });
+    }
+
+    return NextResponse.json({ success: false, message: 'Type tidak valid' }, { status: 400 });
+  } catch (error: any) {
+    console.error('Error Admin Landing DELETE:', error);
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

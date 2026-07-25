@@ -128,10 +128,9 @@ model berita_acara {
 }
 
 model lomba {
-  id_lomba   Int       @id @default(autoincrement())
-  nama       String    @db.VarChar(200)
-  level      String    @db.VarChar(50)
-  kota       String    @db.VarChar(100)
-  img_url    String?   @db.Text
-  created_at DateTime? @default(now())
+  id_lomba   Int     @id @default(autoincrement())
+  nama_lomba String
+  kategori   String?
+  lokasi     String
+  image_url  String?
 }

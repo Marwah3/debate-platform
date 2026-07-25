@@ -3,6 +3,122 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
+// 🎨 KOMPONEN KHUSUS: Mengubah Teks Biasa AI Menjadi Card Highlight Berwarna
+// 🎨 KOMPONEN KHUSUS: Formatted Feedback yang disesuaikan dengan Warna Tema Web
+function FormattedFeedback({ text, isArabic }: { text: string; isArabic: boolean }) {
+  if (!text) return null;
+
+  const lines = text.split('\n').filter((l) => l.trim() !== '');
+
+  const getStyleForTitle = (title: string) => {
+    const lower = title.toLowerCase();
+    if (lower.includes('assertion') || lower.includes('klaim') || lower.includes('1.')) {
+      return {
+        borderColor: 'border-l-blue-500',
+        badgeBg: 'bg-blue-100 text-blue-800',
+        icon: '🔹',
+      };
+    }
+    if (lower.includes('reasoning') || lower.includes('penalaran') || lower.includes('2.')) {
+      return {
+        borderColor: 'border-l-amber-500',
+        badgeBg: 'bg-amber-100 text-amber-800',
+        icon: '🔸',
+      };
+    }
+    if (lower.includes('evidence') || lower.includes('bukti') || lower.includes('3.')) {
+      return {
+        borderColor: 'border-l-emerald-500',
+        badgeBg: 'bg-emerald-100 text-emerald-800',
+        icon: '📊',
+      };
+    }
+    if (lower.includes('link-back') || lower.includes('keterkaitan') || lower.includes('4.')) {
+      return {
+        borderColor: 'border-l-purple-500',
+        badgeBg: 'bg-purple-100 text-purple-800',
+        icon: '🔗',
+      };
+    }
+    return {
+      borderColor: 'border-l-slate-400',
+      badgeBg: 'bg-slate-200 text-slate-800',
+      icon: '📌',
+    };
+  };
+
+  return (
+    <div className="space-y-4 pt-2">
+      {lines.map((line, idx) => {
+        const cleanLine = line.trim();
+
+        // 1. Jika baris berupa Pengantar Biasa (bukan rekomendasi/AREL) -> Tampilkan sebagai Teks Biasa
+        if (cleanLine.toLowerCase().includes('berikut adalah analisis') || cleanLine.toLowerCase().includes('terima kasih atas partisipasi')) {
+          return (
+            <p key={idx} className="text-sm font-medium text-[#334F70] leading-relaxed my-2">
+              {cleanLine.replace(/\*\*/g, '')}
+            </p>
+          );
+        }
+
+        // 2. Jika baris berupa Saran Umum -> Disamakan dengan Warna Biru Mosi (`#C8D8E8`)
+        if (cleanLine.toLowerCase().includes('saran umum') || cleanLine.toLowerCase().includes('saran akhir')) {
+          const content = cleanLine.replace(/\*\*/g, '');
+          return (
+            <div key={idx} className="p-5 bg-[#C8D8E8] border border-[#7EA0CF]/30 rounded-2xl space-y-2 mt-6 shadow-sm">
+              <p className="font-extrabold text-[#334F70] text-sm flex items-center gap-2 border-b border-[#7EA0CF]/30 pb-2">
+                <span>💡</span> Saran Umum Evaluator
+              </p>
+              <p className="text-xs text-[#334F70] font-semibold leading-relaxed pt-1">
+                {content.replace(/^saran umum:\s*/i, '')}
+              </p>
+            </div>
+          );
+        }
+
+        // 3. Jika baris berupa Rekomendasi di dalam Poin AREL
+        if ((cleanLine.startsWith('*') || cleanLine.toLowerCase().includes('rekomendasi:')) && !cleanLine.toLowerCase().includes('berikut adalah')) {
+          const cleanRec = cleanLine.replace(/^\*\s*/, '').replace(/\*\*/g, '');
+          return (
+            <div key={idx} className="ml-2 p-4 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1">
+              <p className="font-bold text-blue-700 text-sm flex items-center gap-1.5">
+                <span>✨</span> Rekomendasi:
+              </p>
+              <p className="text-sm font-medium text-[#334F70] leading-relaxed">
+                {cleanRec.replace(/Rekomendasi:\s*/i, '')}
+              </p>
+            </div>
+          );
+        }
+
+        // 4. Baris Card Utama AREL (Assertion, Reasoning, Evidence, Link-back)
+        const titleMatch = cleanLine.match(/^(\d+\.\s*\*\*.*?\*\*|\*\*.*?\*\*)/);
+        const titleText = titleMatch ? titleMatch[0].replace(/\*\*/g, '') : '';
+        const bodyText = cleanLine.replace(/^(\d+\.\s*\*\*.*?\*\*|\*\*.*?\*\*)/, '').replace(/\*\*/g, '').trim();
+
+        const style = getStyleForTitle(titleText || cleanLine);
+
+        return (
+          <div
+            key={idx}
+            className={`bg-white p-4 rounded-2xl border border-[#C8D8E8] border-l-4 ${style.borderColor} shadow-xs space-y-2`}
+          >
+            {titleText && (
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-1 text-xs font-black rounded-lg ${style.badgeBg}`}>
+                  {style.icon} {titleText}
+                </span>
+              </div>
+            )}
+            <p className="text-sm font-medium text-[#334F70] leading-relaxed">
+              {bodyText || cleanLine.replace(/\*\*/g, '')}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 export default function RuangPraktikPage() {
   const [userSession, setUserSession] = useState<any>(null);
   const [teksArgumen, setTeksArgumen] = useState('');
@@ -103,7 +219,6 @@ export default function RuangPraktikPage() {
 
     const recognition = new SpeechRecognition();
     
-    // PEMETAAN BAHASA ADAPTIF: Otomatis mengenali aksen ucapan sesuai bahasa mosi
     if (bahasaPilihan === 'en') recognition.lang = 'en-US';
     else if (bahasaPilihan === 'ar') recognition.lang = 'ar-SA';
     else recognition.lang = 'id-ID';
@@ -111,18 +226,9 @@ export default function RuangPraktikPage() {
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-      setSedangMerekam(true);
-    };
-
-    recognition.onend = () => {
-      setSedangMerekam(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      console.warn("Speech Recognition Error:", event.error);
-      setSedangMerekam(false);
-    };
+    recognition.onstart = () => setSedangMerekam(true);
+    recognition.onend = () => setSedangMerekam(false);
+    recognition.onerror = () => setSedangMerekam(false);
 
     recognition.onresult = (event: any) => {
       const hasilTeksSuara = event.results[0][0].transcript;
@@ -151,7 +257,7 @@ export default function RuangPraktikPage() {
           id_user: userSession?.id_user || null,
           teks_argumen: teksArgumen,
           mosi: mosiAktif?.teks,
-          bahasa: bahasaPilihan // ← Parameter bahasa adaptif dikirim langsung ke Prompt Gemini di Backend
+          bahasa: bahasaPilihan
         })
       });
 
@@ -182,7 +288,7 @@ export default function RuangPraktikPage() {
           </Link>
         </div>
 
-        {/* ================= PENGATURAN PILIHAN BAHASA ADAPTIF ================= */}
+        {/* PENGATURAN PILIHAN BAHASA ADAPTIF */}
         <div className="flex justify-center md:justify-start items-center gap-2 bg-[#C8D8E8]/50 p-1.5 rounded-xl w-fit border border-[#C8D8E8]">
           <button
             type="button"
@@ -220,7 +326,7 @@ export default function RuangPraktikPage() {
               <button
                 type="button"
                 onClick={() => handleAcakMosi(bahasaPilihan)}
-                className="text-xs font-black text-[#334F70] hover:text-[#7EA0CF] flex items-center gap-1 transition outline-hidden"
+                className="text-xs font-black text-[#334F70] hover:text-[#7EA0CF] flex items-center gap-1 transition outline-hidden cursor-pointer"
               >
                 🔄 {bahasaPilihan === 'ar' ? 'تغيير القضية' : 'Acak Mosi Latihan Baru'}
               </button>
@@ -248,7 +354,7 @@ export default function RuangPraktikPage() {
                 type="button"
                 disabled={loading || loadingMosi || mosiAktif?.jenis === "Kosong"}
                 onClick={tanganiInputSuara}
-                className={`px-4 py-2 text-xs font-black rounded-xl transition flex items-center gap-2 shadow-xs disabled:opacity-50 ${
+                className={`px-4 py-2 text-xs font-black rounded-xl transition flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer ${
                   sedangMerekam 
                     ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
                     : 'bg-[#C8D8E8] hover:bg-[#b8c8d8] text-[#334F70]'
@@ -280,7 +386,7 @@ export default function RuangPraktikPage() {
           <button
             type="submit"
             disabled={loading || loadingMosi || sedangMerekam || mosiAktif?.jenis === "Kosong"}
-            className="w-full py-4 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl shadow-md shadow-[#334F70]/10 text-sm transition duration-200 disabled:opacity-50"
+            className="w-full py-4 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl shadow-md shadow-[#334F70]/10 text-sm transition duration-200 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <span className="animate-pulse">
@@ -298,7 +404,7 @@ export default function RuangPraktikPage() {
           </div>
         )}
 
-        {/* BOX HASIL PENILAIAN JURI AI */}
+        {/* BOX HASIL PENILAIAN JURI AI (DENGAN TAMPILAN CARD HIGHLIGHT AREL) */}
         {hasilEvaluasi && (
           <div 
             dir={bahasaPilihan === 'ar' ? 'rtl' : 'ltr'} 
@@ -325,14 +431,17 @@ export default function RuangPraktikPage() {
               <span className="font-black bg-[#334F70] text-white px-2.5 py-1 rounded-md">+{hasilEvaluasi.xp_diperoleh} XP</span>
             </div>
 
-            {/* Konten Feedback Tulisan */}
-            <div className="space-y-2">
-              <h4 className={`text-sm font-black text-[#334F70] flex items-center gap-1 ${bahasaPilihan === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <span>📝</span> {bahasaPilihan === 'ar' ? 'تقرير الملاحظات الأكاديمية (المراجعة):' : 'Lembar Umpan Balik Akademik (Ulasan):'}
+            {/* Konten Feedback Terstruktur AREL */}
+            <div className="space-y-3">
+              <h4 className={`text-sm font-black text-[#334F70] flex items-center gap-1.5 ${bahasaPilihan === 'ar' ? 'flex-row-reverse' : ''}`}>
+                <span>📝</span> {bahasaPilihan === 'ar' ? 'تقرير الملاحظات الأكاديمية (المراجعة):' : 'Lembar Umpan Balik Akademik (Ulasan AREL):'}
               </h4>
-              <p className={`text-[#334F70] text-sm leading-relaxed whitespace-pre-line bg-[#F3F3F4] p-4 rounded-xl border border-[#C8D8E8] font-mono font-medium ${bahasaPilihan === 'ar' ? 'text-right' : ''}`}>
-                {hasilEvaluasi.feedback_ai}
-              </p>
+              
+              {/* RENDERING DENGAN KOMPONEN FORMATTED FEEDBACK */}
+              <FormattedFeedback 
+                text={hasilEvaluasi.feedback_ai} 
+                isArabic={bahasaPilihan === 'ar'} 
+              />
             </div>
           </div>
         )}
