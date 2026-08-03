@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [userData, setUserData] = useState<any>(null);
   const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +25,16 @@ export default function DashboardPage() {
     }
 
     const loggedInUser = JSON.parse(session);
+
+    // =========================================================================
+    // ⭐ SATPAM ROUTE GUARD: Proteksi Khusus Admin ⭐
+    // Jika role akun adalah 'admin', tendang otomatis ke dashboard admin
+    // =========================================================================
+    const userRole = String(loggedInUser.role || '').toLowerCase();
+    if (userRole === 'admin') {
+      router.replace('/admin/dashboard');
+      return;
+    }
 
     const fetchDataDasbor = async () => {
       try {
@@ -53,7 +65,7 @@ export default function DashboardPage() {
     };
 
     fetchDataDasbor();
-  }, []);
+  }, [router]);
 
   // Hitung jumlah halaman
   const totalPages = Math.ceil(modules.length / itemsPerPage);
@@ -196,11 +208,6 @@ export default function DashboardPage() {
               {currentModuls.map((modul) => {
                 const userLevel = userData?.current_level || 1;
 
-                // 💡 LOGIKA KUNCIAN PRESISI:
-                // Modul terbuka HANYA jika:
-                // 1. Merupakan Bab 1 (selalu terbuka)
-                // 2. ATAU Admin menyetel status_lock === false (seperti materi Lampiran)
-                // 3. ATAU level user sudah cukup (misal Level 2 baru bisa buka Bab 2)
                 const isUnlocked = 
                   modul.urutan === 1 || 
                   modul.status_lock === false || 

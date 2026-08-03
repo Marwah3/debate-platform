@@ -13,20 +13,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Teks argumen tidak boleh kosong' }, { status: 400 });
     }
 
-    // 1. TAHAP RETRIEVAL 
-  
+    // 1. TAHAP RETRIEVAL (RAG dari Chroma DB via Script Python)
     let konteksMateriDebat = "";
     try {
       const perintahPython = `python query_vector.py "${teks_argumen.replace(/"/g, '\\"')}"`;
-      const hasilBuffer = execSync(perintahPython, { encoding: 'utf-8' });
+      // Tambahkan timeout 5000ms agar serverless Netlify tidak hang jika python tak ditemukan
+      const hasilBuffer = execSync(perintahPython, { encoding: 'utf-8', timeout: 5000 });
       konteksMateriDebat = hasilBuffer.trim();
     } catch (err) {
-      console.error("⚠️ Gagal mengambil data RAG dari Chroma DB, menggunakan fallback:", err);
+      console.warn("⚠️ Gagal mengambil data RAG dari Chroma DB (Lingkungan Serverless/Netlify), menggunakan fallback:", err);
       konteksMateriDebat = "Model argumentasi AREL terdiri dari Assertion (Pernyataan), Reasoning (Penalaran sebab-akibat), Evidence (Bukti/Studi Kasus), dan Link-back (Kaitan kesimpulan).";
     }
 
     // 2. TAHAP AUGMENTATION & GENERATION (Gemini Prompt)
-
     const promptRAG = `
       Kamu adalah seorang Juri Debat Parlementer (Adjudicator) profesional di Universitas Darussalam Gontor.
       Tugasmu adalah mengevaluasi argumen mahasiswa secara objektif dan ketat berdasarkan Pedoman Konteks Materi asli berikut:
@@ -44,17 +43,27 @@ export async function POST(request: Request) {
       }
     `;
 
+    // Menggunakan nama model Gemini yang valid di SDK @google/genai
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: promptRAG,
     });
 
     const textResult = response.text || "{}";
     const cleanJsonString = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsedResult = JSON.parse(cleanJsonString);
+    
+    let parsedResult = { skor_AREL: 0, feedback_ai: "Gagal memproses analisis argumen." };
+    try {
+      parsedResult = JSON.parse(cleanJsonString);
+    } catch (parseErr) {
+      console.error("⚠️ Gagal parse JSON dari Gemini response:", textResult);
+      parsedResult = {
+        skor_AREL: 70,
+        feedback_ai: textResult || "Format respon dari AI tidak sesuai, namun argumen berhasil dicatat."
+      };
+    }
 
-    // 3. TAHAP GAMIFIKASI & SAVE KE MYSQL
-
+    // 3. TAHAP GAMIFIKASI & SAVE KE MYSQL (Aiven)
     const xpDiperoleh = Math.round((parsedResult.skor_AREL || 0) * 0.5);
 
     const logArgumen = await prisma.argumens.create({
@@ -84,6 +93,16 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("❌ ERROR API EVALUATOR AI:", error);
-    return NextResponse.json({ error: 'Terjadi kesalahan sistem internal backend' }, { status: 500 });
+
+    // Penanganan khusus untuk Quota Exceeded (Error 429) dari Gemini
+    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
+      return NextResponse.json({ 
+        error: 'Sistem AI sedang mencapai batas kuota pemanggilan (Rate Limit). Silakan coba lagi beberapa saat.' 
+      }, { status: 429 });
+    }
+
+    return NextResponse.json({ 
+      error: 'Terjadi kesalahan sistem internal backend: ' + (error.message || 'Unknown Error') 
+    }, { status: 500 });
   }
 }

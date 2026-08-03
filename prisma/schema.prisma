@@ -40,11 +40,11 @@ model badges {
 model moduls {
   id_modul      Int       @id @default(autoincrement())
   judul         String    @db.VarChar(150)
-  konten_materi String    @db.Text
+  konten_materi String?    @db.Text // ← DIBUAT OPSIONAL (?)
   status_lock   Boolean?  @default(true)
-  urutan        Int
-  bahasa        String    @default("id") // ← Ditambahkan untuk Fitur 3 Bahasa ('id', 'en', 'ar')
-  created_at    DateTime  @default(now())  // ← Ditambahkan untuk pencatatan waktu
+  urutan        Int?       // ← DIBUAT OPSIONAL (?)
+  bahasa        String    @default("id")
+  created_at    DateTime  @default(now())
   quizzes       quizzes[]
 }
 
@@ -70,7 +70,7 @@ model users {
   tanggal_daftar DateTime?  @default(now()) @db.Timestamp(0)
   argumens       argumens[]
   badges         badges[]
-  notes          notes[]    // ← PERBAIKAN: Relasi timbal balik wajib ditambahkan di sini agar objek prisma.notes ter-generate
+  notes          notes[]    // ← Relasi timbal balik sudah benar
 }
 
 

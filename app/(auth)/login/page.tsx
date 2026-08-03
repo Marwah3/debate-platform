@@ -5,14 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AuthPage() {
-  // State utama untuk memicu efek swipe geser layar (false = Mode Masuk, true = Mode Daftar)
   const [isRegisterMode, setIsRegisterMode] = useState(false);
 
-  // State Form Login
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   
-  // State Form Register
   const [regForm, setRegForm] = useState({ username: '', email: '', password: '', confirmPassword: '' });
 
   const [loading, setLoading] = useState(false);
@@ -20,7 +17,7 @@ export default function AuthPage() {
   const { login } = useAuth();
   const router = useRouter();
 
-  // 1. Logika Aksi Masuk (Login)
+  // 1. Logika Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -33,26 +30,29 @@ export default function AuthPage() {
         body: JSON.stringify({ username: loginUsername, password: loginPassword }),
       });
       const responseData = await res.json();
+      
       if (!res.ok) throw new Error(responseData.error || 'Gagal masuk ke sistem.');
 
-      // PERBAIKAN DINAMIS: Membaca role langsung dari respon database MySQL backend
+      const userRole = String(responseData.user.role || '').toLowerCase();
+
       const activeUser = {
         id_user: responseData.user.id_user,
         username: responseData.user.nama,
         email: responseData.user.email,
-        role: responseData.user.role // ← Membaca role asli ('user' atau 'admin')
+        role: userRole
       };
 
       localStorage.setItem('user_session', JSON.stringify(activeUser));
       login(activeUser);
+      
       alert(`Login berhasil! Selamat datang, ${activeUser.username}.`);
       
-      // LOGIKA ROUTING BERBASIS HAK AKSES PROPOSAL
-      if (activeUser.role === 'admin') {
-        router.push('/admin/dashboard');
+      if (userRole === 'admin') {
+        router.push('/admin/dashboard'); 
       } else {
         router.push('/dashboard');
       }
+      
     } catch (err: any) {
       setErrorMsg(err.message || 'Terjadi kesalahan jaringan.');
     } finally {
@@ -60,7 +60,7 @@ export default function AuthPage() {
     }
   };
 
-  // 2. Logika Aksi Daftar (Register)
+  // 2. Logika Register
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -79,12 +79,13 @@ export default function AuthPage() {
           username: regForm.username,
           email: regForm.email,
           password: regForm.password,
+          role: 'admin'
         }),
       });
       const responseData = await res.json();
       if (!res.ok) throw new Error(responseData.error || 'Gagal mendaftarkan akun.');
 
-      alert('Registrasi berhasil! Silakan langsung masuk menggunakan akun baru Anda.');
+      alert('Registrasi berhasil! Silakan masuk dengan akun baru Anda.');
       setIsRegisterMode(false);
       setLoginUsername(regForm.username);
       setRegForm({ username: '', email: '', password: '', confirmPassword: '' });
@@ -98,9 +99,7 @@ export default function AuthPage() {
   return (
     <div className="w-screen h-screen bg-white relative flex overflow-hidden select-none">
       
-      {/* ========================================================================= */}
-      {/* PANEL ELEMEN 1: BLOK ANIMASI BACKGROUND DEEP NAVY (SWIPE OVERLAY FULL)     */}
-      {/* ========================================================================= */}
+      {/* PANEL 1: BACKGROUND NAVY */}
       <div 
         className={`hidden lg:flex absolute top-0 bottom-0 w-1/2 bg-[#334F70] text-[#F3F3F4] p-12 flex-col justify-center items-center text-center space-y-6 z-20 transition-all duration-700 ease-in-out ${
           isRegisterMode ? 'left-1/2' : 'left-0'
@@ -123,9 +122,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* PANEL ELEMEN 2: FORM MASUK (LOGIN) - BERADA DI SISI KANAN NYATA           */}
-      {/* ========================================================================= */}
+      {/* PANEL 2: FORM LOGIN */}
       <div 
         className={`w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-[#F3F3F4] lg:bg-white transition-all duration-700 ease-in-out absolute top-0 bottom-0 right-0 z-10 ${
           isRegisterMode ? 'opacity-0 pointer-events-none lg:translate-x-10' : 'opacity-100 translate-x-0'
@@ -186,9 +183,7 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* PANEL ELEMEN 3: FORM DAFTAR (REGISTER) - BERADA DI SISI KIRI NYATA           */}
-      {/* ========================================================================= */}
+      {/* PANEL 3: FORM REGISTER */}
       <div 
         className={`w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-[#F3F3F4] lg:bg-white transition-all duration-700 ease-in-out absolute top-0 bottom-0 left-0 z-10 ${
           isRegisterMode ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none lg:-translate-x-10'
