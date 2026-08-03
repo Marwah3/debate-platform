@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const unwrappedParams = await params;
-    const idModulNum = Number(unwrappedParams.id_modul);
+    const idModulNum = Number(unwrappedParams?.id_modul);
 
     if (isNaN(idModulNum)) {
       return NextResponse.json({ error: 'ID Modul tidak valid' }, { status: 400 });
@@ -33,7 +33,7 @@ export async function POST(
 ) {
   try {
     const unwrappedParams = await params;
-    const idModulNum = Number(unwrappedParams.id_modul);
+    const idModulNum = Number(unwrappedParams?.id_modul);
     
     // Ambil data skor dan id_user yang dikirim oleh frontend kuis
     const { skor, id_user } = await request.json();
@@ -50,7 +50,8 @@ export async function POST(
       });
 
       if (currentModul) {
-        const urutanBerikutnya = currentModul.urutan + 1;
+        // PERBAIKAN TYPESCRIPT: Menggunakan (currentModul.urutan ?? 0) untuk menghindari error null check
+        const urutanBerikutnya = (currentModul.urutan ?? 0) + 1;
 
         // B. UNLOCK MODUL SELANJUTNYA: Ubah status_lock menjadi false di MySQL
         await prisma.moduls.updateMany({
@@ -60,12 +61,12 @@ export async function POST(
       }
 
       // C. UPDATE GAMIFIKASI USER: Ambil status XP saat ini di database
-        const userLama = await prisma.users.findUnique({ 
+      const userLama = await prisma.users.findUnique({ 
         where: { id_user: Number(id_user) } 
       });
 
       if (userLama) {
-        //'|| 0' untuk mengantisipasi jika total_xp berstatus null di database
+        // '|| 0' untuk mengantisipasi jika total_xp berstatus null di database
         const xpLama = userLama.total_xp || 0;
         const totalXpBaru = xpLama + 100; 
         
