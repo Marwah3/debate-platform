@@ -44,10 +44,10 @@ export async function POST(request: Request) {
     `;
 
     // Menggunakan nama model Gemini yang valid di SDK @google/genai
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: promptRAG,
-    });
+const response = await ai.models.generateContent({
+  model: 'gemini-2.0-flash', // ← Ubah ke gemini-2.0-flash
+  contents: promptRAG,
+});
 
     const textResult = response.text || "{}";
     const cleanJsonString = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
