@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { GoogleGenAI } from '@google/genai';
+import Groq from 'groq-sdk';
 import { execSync } from 'child_process';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// Inisialisasi client Groq SDK
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || '',
+});
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +20,7 @@ export async function POST(request: Request) {
     let konteksMateriDebat = "";
     try {
       const perintahPython = `python query_vector.py "${teks_argumen.replace(/"/g, '\\"')}"`;
-      // Tambahkan timeout 5000ms agar serverless Netlify tidak hang jika python tak ditemukan
+      // Timeout 5000ms agar serverless Netlify tidak hang jika python tak ditemukan
       const hasilBuffer = execSync(perintahPython, { encoding: 'utf-8', timeout: 5000 });
       konteksMateriDebat = hasilBuffer.trim();
     } catch (err) {
@@ -25,7 +28,7 @@ export async function POST(request: Request) {
       konteksMateriDebat = "Model argumentasi AREL terdiri dari Assertion (Pernyataan), Reasoning (Penalaran sebab-akibat), Evidence (Bukti/Studi Kasus), dan Link-back (Kaitan kesimpulan).";
     }
 
-    // 2. TAHAP AUGMENTATION & GENERATION (Gemini Prompt)
+    // 2. TAHAP AUGMENTATION & GENERATION (Groq AI Prompt)
     const promptRAG = `
       Kamu adalah seorang Juri Debat Parlementer (Adjudicator) profesional di Universitas Darussalam Gontor.
       Tugasmu adalah mengevaluasi argumen mahasiswa secara objektif dan ketat berdasarkan Pedoman Konteks Materi asli berikut:
@@ -36,27 +39,38 @@ export async function POST(request: Request) {
       Berikut adalah teks argumen konstruksi kasus yang diajukan oleh mahasiswa:
       "${teks_argumen}"
 
-      Berikan penilaian secara akademis dengan format output JSON murni tanpa markdown (tanpa trik tanda kutip \`\`\`json), tanpa kata pengantar apa pun. Strukturnya wajib tepat seperti ini:
+      Berikan penilaian secara akademis dengan format output JSON murni tanpa markdown, tanpa kata pengantar apa pun. Strukturnya wajib tepat seperti ini:
       {
         "skor_AREL": (berikan nilai angka 1-100 berdasarkan pemenuhan struktur dan kedalaman dampak sesuai pedoman materi),
         "feedback_ai": "Tuliskan analisis komprehensif per elemen (Assertion, Reasoning, Evidence, Link-back) dan berikan rekomendasi perbaikan spesifik menggunakan bahasa Indonesia yang santun"
       }
     `;
 
-    // Menggunakan nama model Gemini yang valid di SDK @google/genai
-const response = await ai.models.generateContent({
-  model: 'gemini-2.0-flash', // ← Ubah ke gemini-2.0-flash
-  contents: promptRAG,
-});
+    // Pemanggilan ke Groq API
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: 'system',
+          content: 'Kamu adalah sistem penilai dan evaluator debat yang selalu memberikan output berbentuk JSON valid.'
+        },
+        {
+          role: 'user',
+          content: promptRAG,
+        },
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.3,
+      response_format: { type: 'json_object' }, // Memastikan output murni JSON valid dari Groq
+    });
 
-    const textResult = response.text || "{}";
+    const textResult = chatCompletion.choices[0]?.message?.content || "{}";
     const cleanJsonString = textResult.replace(/```json/g, '').replace(/```/g, '').trim();
     
     let parsedResult = { skor_AREL: 0, feedback_ai: "Gagal memproses analisis argumen." };
     try {
       parsedResult = JSON.parse(cleanJsonString);
     } catch (parseErr) {
-      console.error("⚠️ Gagal parse JSON dari Gemini response:", textResult);
+      console.error("⚠️ Gagal parse JSON dari Groq response:", textResult);
       parsedResult = {
         skor_AREL: 70,
         feedback_ai: textResult || "Format respon dari AI tidak sesuai, namun argumen berhasil dicatat."
@@ -94,10 +108,10 @@ const response = await ai.models.generateContent({
   } catch (error: any) {
     console.error("❌ ERROR API EVALUATOR AI:", error);
 
-    // Penanganan khusus untuk Quota Exceeded (Error 429) dari Gemini
-    if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
+    // Penanganan khusus jika terkena Rate Limit dari Groq
+    if (error.status === 429 || error.message?.includes('429') || error.message?.toLowerCase().includes('rate limit')) {
       return NextResponse.json({ 
-        error: 'Sistem AI sedang mencapai batas kuota pemanggilan (Rate Limit). Silakan coba lagi beberapa saat.' 
+        error: 'Sistem AI sedang mencapai batas kuota pemanggilan (Rate Limit Groq). Silakan coba lagi beberapa saat.' 
       }, { status: 429 });
     }
 

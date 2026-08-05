@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username, email, password, role } = body;
+    const { username, email, password } = body;
 
     // 1. Validasi input
     if (!username || !email || !password) {
@@ -17,12 +15,15 @@ export async function POST(req: Request) {
       );
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = username.trim();
+
     // 2. Cek apakah email atau nama sudah terdaftar
     const existingUser = await prisma.users.findFirst({
       where: {
         OR: [
-          { email: email },
-          { nama: username },
+          { email: cleanEmail },
+          { nama: cleanName },
         ],
       },
     });
@@ -37,28 +38,33 @@ export async function POST(req: Request) {
     // 3. Hashing Password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // 4. Tentukan Role
-    const finalRole = (role === 'admin') ? 'admin' : 'user';
-
-    // 5. Simpan user baru
+    // 4. Simpan ke database dengan role 'user'
     const newUser = await prisma.users.create({
       data: {
-        nama: username,
-        email: email,
+        nama: cleanName,
+        email: cleanEmail,
         password: hashedPassword,
-        role: finalRole as any,
+        role: 'user' as any, // Cast 'as any' untuk mencegah konflik Enum TypeScript
+        total_xp: 0,
       },
     });
 
     return NextResponse.json({
       success: true,
       message: 'Registrasi berhasil! Silakan login.',
-      user: { id: newUser.id_user, nama: newUser.nama, email: newUser.email, role: newUser.role },
-    });
-  } catch (error) {
-    console.error('Error register:', error);
+      user: { 
+        id_user: newUser.id_user, 
+        nama: newUser.nama, 
+        email: newUser.email, 
+        role: newUser.role 
+      },
+    }, { status: 201 });
+
+  } catch (error: any) {
+    console.error('❌ ERROR DETAIL REGISTER:', error);
+
     return NextResponse.json(
-      { message: 'Terjadi kesalahan internal server' },
+      { message: error?.message || 'Terjadi kesalahan sistem internal server' },
       { status: 500 }
     );
   }

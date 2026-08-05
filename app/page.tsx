@@ -54,18 +54,16 @@ interface LombaItem {
 }
 
 export default function LandingPage() {
-  const ff = { fontFamily: "'Plus Jakarta Sans', sans-serif" };
-
   // Data Gambar Default (Fallback)
   const IMG = {
-    hero:      "https://images.unsplash.com/photo-1660795308754-4c6422baf2f6?fit=max&fm=jpg&q=80&w=1600",
-    about:     "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?fit=max&fm=jpg&q=80&w=1080",
-    speaking:  "https://images.unsplash.com/photo-1660796046943-ae52067e019f?fit=max&fm=jpg&q=80&w=1080",
-    mic:       "https://images.unsplash.com/photo-1660795939433-c1964528c485?fit=max&fm=jpg&q=80&w=1080",
-    trophy:    "https://images.unsplash.com/photo-1578269174936-2709b6aeb913?fit=max&fm=jpg&q=80&w=1080",
-    audience:  "https://images.unsplash.com/photo-1778876091184-8839210e1917?fit=max&fm=jpg&q=80&w=1080",
-    lecture:   "https://images.unsplash.com/photo-1778876088510-84d7d8defaaa?fit=max&fm=jpg&q=80&w=1080",
-    group:     "https://images.unsplash.com/photo-1569617084133-26942bb441f2?fit=max&fm=jpg&q=80&w=1080",
+    hero:     "https://images.unsplash.com/photo-1660795308754-4c6422baf2f6?fit=max&fm=jpg&q=80&w=1600",
+    about:    "https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?fit=max&fm=jpg&q=80&w=1080",
+    speaking: "https://images.unsplash.com/photo-1660796046943-ae52067e019f?fit=max&fm=jpg&q=80&w=1080",
+    mic:      "https://images.unsplash.com/photo-1660795939433-c1964528c485?fit=max&fm=jpg&q=80&w=1080",
+    trophy:   "https://images.unsplash.com/photo-1578269174936-2709b6aeb913?fit=max&fm=jpg&q=80&w=1080",
+    audience: "https://images.unsplash.com/photo-1778876091184-8839210e1917?fit=max&fm=jpg&q=80&w=1080",
+    lecture:  "https://images.unsplash.com/photo-1778876088510-84d7d8defaaa?fit=max&fm=jpg&q=80&w=1080",
+    group:    "https://images.unsplash.com/photo-1569617084133-26942bb441f2?fit=max&fm=jpg&q=80&w=1080",
   };
 
   // State Dinamis
@@ -100,18 +98,20 @@ export default function LandingPage() {
     { id_lomba: 6, nama: "WSD Exhibition UNIDA 2023", level: "Internal", kota: "Ponorogo", img_url: IMG.speaking },
   ]);
 
-  // Load Data dari Database
+  // Load Data dari Database secara Aman
   useEffect(() => {
     async function loadLandingData() {
       try {
         const res = await fetch('/api/landing');
+        if (!res.ok) throw new Error("Gagal load API landing");
         const result = await res.json();
-        if (result.success) {
+        
+        if (result?.success && result?.data) {
           if (result.data.stats) setStats(result.data.stats);
-          if (result.data.anggota.length > 0) setAnggota(result.data.anggota);
-          if (result.data.prestasi.length > 0) setPrestasi(result.data.prestasi);
-          if (result.data.berita.length > 0) setBeritaAcara(result.data.berita);
-          if (result.data.lomba.length > 0) setLomba(result.data.lomba);
+          if (Array.isArray(result.data.anggota) && result.data.anggota.length > 0) setAnggota(result.data.anggota);
+          if (Array.isArray(result.data.prestasi) && result.data.prestasi.length > 0) setPrestasi(result.data.prestasi);
+          if (Array.isArray(result.data.berita) && result.data.berita.length > 0) setBeritaAcara(result.data.berita);
+          if (Array.isArray(result.data.lomba) && result.data.lomba.length > 0) setLomba(result.data.lomba);
         }
       } catch (err) {
         console.log("Menggunakan data default (Fallback Data)");
@@ -121,7 +121,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div style={{ background: C.white, ...ff }} className="select-none min-h-screen">
+    <div style={{ background: C.white }} className="select-none min-h-screen font-sans">
 
       {/* ── 1. HERO SECTION ── */}
       <section className="relative min-h-160 flex items-end overflow-hidden">

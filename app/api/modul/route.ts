@@ -2,16 +2,43 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // 1. [GET] Mengambil semua daftar materi silabus diurutkan berdasarkan bab
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const id_user = searchParams.get('id_user');
+
+    // Ambil daftar modul utama
     const daftarMateri = await prisma.moduls.findMany({
       orderBy: {
-        urutan: 'asc', // Diurutkan berdasarkan kolom 'urutan' di database
+        urutan: 'asc',
       },
     });
-    return NextResponse.json({ success: true, data: daftarMateri }, { status: 200 });
+
+    let completedModulIds: number[] = [];
+
+    // Jika id_user dikirim, cek modul mana saja yang sudah LULUS di tabel log_kuis
+    if (id_user) {
+      const userLogs = await prisma.log_kuis.findMany({
+        where: {
+          id_user: Number(id_user),
+          is_lulus: true,
+        },
+        select: {
+          id_modul: true,
+        },
+      });
+      completedModulIds = userLogs.map((log) => log.id_modul);
+    }
+
+    // Petakan data untuk menyertakan bendera `is_completed`
+    const formattedData = daftarMateri.map((m) => ({
+      ...m,
+      is_completed: completedModulIds.includes(m.id_modul),
+    }));
+
+    return NextResponse.json({ success: true, data: formattedData }, { status: 200 });
   } catch (error: any) {
-    console.warn("❌ API GET MODUL ERROR:", error.message || error);
+    console.error("❌ API GET MODUL ERROR:", error.message || error);
     return NextResponse.json({ error: 'Gagal memuat materi pembelajaran' }, { status: 500 });
   }
 }
@@ -39,7 +66,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: materiBaru }, { status: 201 });
   } catch (error: any) {
-    console.warn("❌ API POST MODUL ERROR:", error.message || error);
+    console.error("❌ API POST MODUL ERROR:", error.message || error);
     return NextResponse.json({ error: 'Gagal menyimpan materi baru ke database' }, { status: 500 });
   }
 }
@@ -72,7 +99,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true, data: materiUpdated }, { status: 200 });
   } catch (error: any) {
-    console.warn("❌ API PUT MODUL ERROR:", error.message || error);
+    console.error("❌ API PUT MODUL ERROR:", error.message || error);
     return NextResponse.json({ error: 'Gagal memperbarui materi di database' }, { status: 500 });
   }
 }
@@ -96,7 +123,7 @@ export async function DELETE(request: Request) {
       message: 'Materi silabus berhasil dihapus!',
     }, { status: 200 });
   } catch (error: any) {
-    console.warn("❌ API DELETE MODUL ERROR:", error.message || error);
+    console.error("❌ API DELETE MODUL ERROR:", error.message || error);
     return NextResponse.json({ success: false, error: 'Gagal menghapus materi dari database' }, { status: 500 });
   }
 }

@@ -136,3 +136,16 @@ model lomba {
   lokasi     String
   image_url  String?
 }
+
+model log_kuis {
+  id_log       Int      @id @default(autoincrement())
+  id_user      Int
+  id_modul     Int
+  nilai        Int      @default(0)
+  is_lulus     Boolean  @default(false)
+  xp_diperoleh Int      @default(0)
+  created_at   DateTime @default(now()) @db.Timestamp(0)
+
+  @@index([id_user], map: "id_user")
+  @@index([id_modul], map: "id_modul")
+}
