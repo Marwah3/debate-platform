@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const id_user = searchParams.get('id_user');
 
-    // Ambil daftar modul utama
+    // 1. Ambil daftar modul utama
     const daftarMateri = await prisma.moduls.findMany({
       orderBy: {
         urutan: 'asc',
@@ -16,21 +16,26 @@ export async function GET(request: Request) {
 
     let completedModulIds: number[] = [];
 
-    // Jika id_user dikirim, cek modul mana saja yang sudah LULUS di tabel log_kuis
+    // 2. Proteksi query log_kuis agar tidak memicu 500
     if (id_user) {
-      const userLogs = await prisma.log_kuis.findMany({
-        where: {
-          id_user: Number(id_user),
-          is_lulus: true,
-        },
-        select: {
-          id_modul: true,
-        },
-      });
-      completedModulIds = userLogs.map((log) => log.id_modul);
+      try {
+        const userLogs = await (prisma as any).log_kuis.findMany({
+          where: {
+            id_user: Number(id_user),
+            is_lulus: true,
+          },
+          select: {
+            id_modul: true,
+          },
+        });
+        completedModulIds = userLogs.map((log: any) => log.id_modul);
+      } catch (logError) {
+        // Jika tabel log_kuis di DB belum ter-sync, abaikan tanpa membuat server crash
+        console.warn("⚠️ Warning: log_kuis belum terdeteksi, menampilkan modul default.");
+      }
     }
 
-    // Petakan data untuk menyertakan bendera `is_completed`
+    // 3. Format response dengan field `is_completed`
     const formattedData = daftarMateri.map((m) => ({
       ...m,
       is_completed: completedModulIds.includes(m.id_modul),

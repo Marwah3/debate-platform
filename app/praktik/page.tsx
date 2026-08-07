@@ -3,122 +3,94 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
-// 🎨 KOMPONEN KHUSUS: Mengubah Teks Biasa AI Menjadi Card Highlight Berwarna
-// 🎨 KOMPONEN KHUSUS: Formatted Feedback yang disesuaikan dengan Warna Tema Web
-function FormattedFeedback({ text, isArabic }: { text: string; isArabic: boolean }) {
+function FormattedFeedback({ text }: { text: string }) {
   if (!text) return null;
 
-  const lines = text.split('\n').filter((l) => l.trim() !== '');
+  const blocks = text.split(/\n\s*\n/).filter((b) => b.trim() !== '');
 
   const getStyleForTitle = (title: string) => {
     const lower = title.toLowerCase();
-    if (lower.includes('assertion') || lower.includes('klaim') || lower.includes('1.')) {
-      return {
-        borderColor: 'border-l-blue-500',
-        badgeBg: 'bg-blue-100 text-blue-800',
-        icon: '🔹',
-      };
+    if (lower.includes('assertion') || lower.includes('1.')) {
+      return { borderColor: 'border-l-blue-500', badgeBg: 'bg-blue-100 text-blue-800', icon: '🔹', titleDefault: '1. Assertion (A)' };
     }
-    if (lower.includes('reasoning') || lower.includes('penalaran') || lower.includes('2.')) {
-      return {
-        borderColor: 'border-l-amber-500',
-        badgeBg: 'bg-amber-100 text-amber-800',
-        icon: '🔸',
-      };
+    if (lower.includes('reasoning') || lower.includes('2.')) {
+      return { borderColor: 'border-l-amber-500', badgeBg: 'bg-amber-100 text-amber-800', icon: '🔸', titleDefault: '2. Reasoning (R)' };
     }
-    if (lower.includes('evidence') || lower.includes('bukti') || lower.includes('3.')) {
-      return {
-        borderColor: 'border-l-emerald-500',
-        badgeBg: 'bg-emerald-100 text-emerald-800',
-        icon: '📊',
-      };
+    if (lower.includes('evidence') || lower.includes('3.')) {
+      return { borderColor: 'border-l-emerald-500', badgeBg: 'bg-emerald-100 text-emerald-800', icon: '📊', titleDefault: '3. Evidence (E)' };
     }
-    if (lower.includes('link-back') || lower.includes('keterkaitan') || lower.includes('4.')) {
-      return {
-        borderColor: 'border-l-purple-500',
-        badgeBg: 'bg-purple-100 text-purple-800',
-        icon: '🔗',
-      };
+    if (lower.includes('link-back') || lower.includes('4.')) {
+      return { borderColor: 'border-l-purple-500', badgeBg: 'bg-purple-100 text-purple-800', icon: '🔗', titleDefault: '4. Link-back (L)' };
     }
-    return {
-      borderColor: 'border-l-slate-400',
-      badgeBg: 'bg-slate-200 text-slate-800',
-      icon: '📌',
-    };
+    return { borderColor: 'border-l-slate-400', badgeBg: 'bg-slate-200 text-slate-800', icon: '📌', titleDefault: 'Catatan Evaluasi' };
   };
 
   return (
     <div className="space-y-4 pt-2">
-      {lines.map((line, idx) => {
-        const cleanLine = line.trim();
+      {blocks.map((block, idx) => {
+        const lines = block.split('\n').filter((l) => l.trim() !== '');
+        const headerLine = lines[0] || '';
+        const bodyLines = lines.slice(1);
 
-        // 1. Jika baris berupa Pengantar Biasa (bukan rekomendasi/AREL) -> Tampilkan sebagai Teks Biasa
-        if (cleanLine.toLowerCase().includes('berikut adalah analisis') || cleanLine.toLowerCase().includes('terima kasih atas partisipasi')) {
+        if (headerLine.toLowerCase().includes('saran umum')) {
           return (
-            <p key={idx} className="text-sm font-medium text-[#334F70] leading-relaxed my-2">
-              {cleanLine.replace(/\*\*/g, '')}
-            </p>
-          );
-        }
-
-        // 2. Jika baris berupa Saran Umum -> Disamakan dengan Warna Biru Mosi (`#C8D8E8`)
-        if (cleanLine.toLowerCase().includes('saran umum') || cleanLine.toLowerCase().includes('saran akhir')) {
-          const content = cleanLine.replace(/\*\*/g, '');
-          return (
-            <div key={idx} className="p-5 bg-[#C8D8E8] border border-[#7EA0CF]/30 rounded-2xl space-y-2 mt-6 shadow-sm">
+            <div key={idx} className="p-5 bg-[#C8D8E8] border border-[#7EA0CF]/30 rounded-2xl space-y-2 mt-4 shadow-xs">
               <p className="font-extrabold text-[#334F70] text-sm flex items-center gap-2 border-b border-[#7EA0CF]/30 pb-2">
                 <span>💡</span> Saran Umum Evaluator
               </p>
               <p className="text-xs text-[#334F70] font-semibold leading-relaxed pt-1">
-                {content.replace(/^saran umum:\s*/i, '')}
+                {block.replace(/saran umum:\s*/i, '').replace(/\*\*/g, '')}
               </p>
             </div>
           );
         }
 
-        // 3. Jika baris berupa Rekomendasi di dalam Poin AREL
-        if ((cleanLine.startsWith('*') || cleanLine.toLowerCase().includes('rekomendasi:')) && !cleanLine.toLowerCase().includes('berikut adalah')) {
-          const cleanRec = cleanLine.replace(/^\*\s*/, '').replace(/\*\*/g, '');
-          return (
-            <div key={idx} className="ml-2 p-4 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1">
-              <p className="font-bold text-blue-700 text-sm flex items-center gap-1.5">
-                <span>✨</span> Rekomendasi:
-              </p>
-              <p className="text-sm font-medium text-[#334F70] leading-relaxed">
-                {cleanRec.replace(/Rekomendasi:\s*/i, '')}
-              </p>
-            </div>
-          );
-        }
+        const style = getStyleForTitle(headerLine);
+        let mainContent = headerLine.replace(/^(\d+\.\s*\*\*.*?\*\*|\*\*.*?\*\*)/, '').replace(/\*\*/g, '').trim();
+        let recommendationText = '';
 
-        // 4. Baris Card Utama AREL (Assertion, Reasoning, Evidence, Link-back)
-        const titleMatch = cleanLine.match(/^(\d+\.\s*\*\*.*?\*\*|\*\*.*?\*\*)/);
-        const titleText = titleMatch ? titleMatch[0].replace(/\*\*/g, '') : '';
-        const bodyText = cleanLine.replace(/^(\d+\.\s*\*\*.*?\*\*|\*\*.*?\*\*)/, '').replace(/\*\*/g, '').trim();
+        bodyLines.forEach((line) => {
+          if (line.toLowerCase().includes('rekomendasi:')) {
+            recommendationText += line.replace(/^\*\s*/, '').replace(/Rekomendasi:\s*/i, '').replace(/\*\*/g, '') + ' ';
+          } else {
+            mainContent += ' ' + line.replace(/\*\*/g, '').trim();
+          }
+        });
 
-        const style = getStyleForTitle(titleText || cleanLine);
+        const titleMatch = headerLine.match(/^(\d+\.\s*\*\*.*?\*\*|\*\*.*?\*\*)/);
+        const titleText = titleMatch ? titleMatch[0].replace(/\*\*/g, '') : style.titleDefault;
 
         return (
-          <div
-            key={idx}
-            className={`bg-white p-4 rounded-2xl border border-[#C8D8E8] border-l-4 ${style.borderColor} shadow-xs space-y-2`}
-          >
-            {titleText && (
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 text-xs font-black rounded-lg ${style.badgeBg}`}>
-                  {style.icon} {titleText}
-                </span>
+          <div key={idx} className={`bg-white p-5 rounded-2xl border border-[#C8D8E8] border-l-4 ${style.borderColor} shadow-xs space-y-3`}>
+            <div className="flex items-center gap-2">
+              <span className={`px-3 py-1 text-xs font-black rounded-lg ${style.badgeBg}`}>
+                {style.icon} {titleText}
+              </span>
+            </div>
+
+            {mainContent.trim() && (
+              <p className="text-sm font-medium text-[#334F70] leading-relaxed">
+                {mainContent.trim()}
+              </p>
+            )}
+
+            {recommendationText.trim() && (
+              <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl space-y-1 mt-2">
+                <p className="font-bold text-blue-700 text-xs flex items-center gap-1.5">
+                  <span>✨</span> Rekomendasi Perbaikan:
+                </p>
+                <p className="text-xs font-medium text-[#334F70] leading-relaxed">
+                  {recommendationText.trim()}
+                </p>
               </div>
             )}
-            <p className="text-sm font-medium text-[#334F70] leading-relaxed">
-              {bodyText || cleanLine.replace(/\*\*/g, '')}
-            </p>
           </div>
         );
       })}
     </div>
   );
 }
+
 export default function RuangPraktikPage() {
   const [userSession, setUserSession] = useState<any>(null);
   const [teksArgumen, setTeksArgumen] = useState('');
@@ -127,48 +99,28 @@ export default function RuangPraktikPage() {
   const [hasilEvaluasi, setHasilEvaluasi] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // State manajemen bank mosi dari database MySQL
   const [allMotions, setAllMotions] = useState<any[]>([]);
   const [mosiAktif, setMosiAktif] = useState<any>(null);
+  const [bahasaPilihan, setBahasaPilihan] = useState('id');
 
-  // State tambahan untuk kontrol Bahasa & Speech-to-Text
-  const [bahasaPilihan, setBahasaPilihan] = useState('id'); // 'id', 'en', atau 'ar'
-  const [sedangMerekam, setSedangMerekam] = useState(false);
-
-  // FUNGSI: Mengacak mosi berdasarkan filter bahasa yang aktif
   const handleAcakMosi = useCallback((bahasaTarget = bahasaPilihan) => {
     if (allMotions.length === 0) return;
-    
-    // Filter mosi dari database yang sesuai dengan bahasa pilihan
     const mosiSesuaiBahasa = allMotions.filter(m => m.bahasa === bahasaTarget);
-    
     if (mosiSesuaiBahasa.length === 0) {
       setMosiAktif({ teks: "Belum ada mosi terdaftar untuk bahasa ini.", jenis: "Kosong" });
       return;
     }
-
-    // Hindari mosi yang sama muncul berturut-turut
     const daftarMosiTersedia = mosiSesuaiBahasa.filter(m => m.teks !== mosiAktif?.teks);
     const mosiTeksPilihan = daftarMosiTersedia.length > 0 ? daftarMosiTersedia : mosiSesuaiBahasa;
-    
-    const mosiRandom = mosiTeksPilihan[Math.floor(Math.random() * mosiTeksPilihan.length)];
-    setMosiAktif(mosiRandom);
+    setMosiAktif(mosiTeksPilihan[Math.floor(Math.random() * mosiTeksPilihan.length)]);
     setTeksArgumen(''); 
     setHasilEvaluasi(null); 
     setErrorMsg('');
   }, [allMotions, mosiAktif, bahasaPilihan]);
 
-  // Efek samping untuk mengacak mosi baru secara otomatis saat user mengganti pilihan bahasa
-  const handleGantiBahasa = (bahasaBaru: string) => {
-    setBahasaPilihan(bahasaBaru);
-    handleAcakMosi(bahasaBaru);
-  };
-
   useEffect(() => {
     const session = localStorage.getItem('user_session');
-    if (session) {
-      setUserSession(JSON.parse(session));
-    }
+    if (session) setUserSession(JSON.parse(session));
 
     const fetchMotionsFromDb = async () => {
       try {
@@ -177,17 +129,10 @@ export default function RuangPraktikPage() {
         const resData = await res.json();
         if (res.ok && resData.data && resData.data.length > 0) {
           setAllMotions(resData.data);
-          
-          // Mengambil mosi pertama kali sesuai default bahasa 'id'
           const mosiAwal = resData.data.filter((m: any) => m.bahasa === 'id');
-          if (mosiAwal.length > 0) {
-            setMosiAktif(mosiAwal[Math.floor(Math.random() * mosiAwal.length)]);
-          } else {
-            setMosiAktif(resData.data[0]);
-          }
+          setMosiAktif(mosiAwal.length > 0 ? mosiAwal[Math.floor(Math.random() * mosiAwal.length)] : resData.data[0]);
         } else {
-          // Fallback lokal jika tabel database masih kosong
-          const fallbackMosi = { teks: "Dewan ini menyesali tren budaya kerja berlebihan (hustle culture).", jenis: "Mosi Penilaian/Evaluasi (Value Motion)", bahasa: "id" };
+          const fallbackMosi = { teks: "Dewan ini menyesali tren budaya kerja berlebihan (hustle culture).", jenis: "Mosi Penilaian (Value Motion)", bahasa: "id" };
           setAllMotions([fallbackMosi]);
           setMosiAktif(fallbackMosi);
         }
@@ -201,47 +146,10 @@ export default function RuangPraktikPage() {
     fetchMotionsFromDb();
   }, []);
 
-  // FUNGSI: Eksekusi Input Suara Otomatis Adaptif (Speech-to-Text)
-  const tanganiInputSuara = () => {
-    if (typeof window === 'undefined') return;
-
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      alert("Maaf, browser Anda tidak mendukung fitur pengenalan suara (Speech Recognition). Silakan gunakan Google Chrome atau Microsoft Edge terbaru.");
-      return;
-    }
-
-    if (sedangMerekam) {
-      setSedangMerekam(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    
-    if (bahasaPilihan === 'en') recognition.lang = 'en-US';
-    else if (bahasaPilihan === 'ar') recognition.lang = 'ar-SA';
-    else recognition.lang = 'id-ID';
-
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => setSedangMerekam(true);
-    recognition.onend = () => setSedangMerekam(false);
-    recognition.onerror = () => setSedangMerekam(false);
-
-    recognition.onresult = (event: any) => {
-      const hasilTeksSuara = event.results[0][0].transcript;
-      setTeksArgumen((prev) => prev ? `${prev} ${hasilTeksSuara}` : hasilTeksSuara);
-    };
-
-    recognition.start();
-  };
-
   const handleKirimArgumen = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!teksArgumen.trim()) {
-      alert("Harap ketikkan atau dikte kerangka argumen debat kamu terlebih dahulu!");
+      alert("Harap ketikkan kerangka argumen kamu terlebih dahulu!");
       return;
     }
 
@@ -273,6 +181,23 @@ export default function RuangPraktikPage() {
     }
   };
 
+  // Helper untuk parsing feedback_ai dari DB
+  let evalData: any = {};
+  if (hasilEvaluasi) {
+    if (hasilEvaluasi.eval_data) {
+      evalData = hasilEvaluasi.eval_data;
+    } else {
+      try {
+        evalData = JSON.parse(hasilEvaluasi.feedback_ai);
+      } catch (e) {
+        evalData = { skor_AREL: hasilEvaluasi.skor_AREL, feedback_ai: hasilEvaluasi.feedback_ai };
+      }
+    }
+  }
+
+  // Ambang batas kelayakan total disesuaikan (>= 50 Poin dianggap LAYAK)
+  const isLayak = evalData.skor_AREL >= 50;
+
   return (
     <div className="min-h-screen bg-[#F3F3F4] text-[#334F70] p-6 md:p-12 flex flex-col items-center">
       <div className="max-w-3xl w-full space-y-8">
@@ -284,117 +209,45 @@ export default function RuangPraktikPage() {
             <p className="text-xs text-slate-400 mt-1 font-medium">Uji kekuatan model penalaran AREL kamu secara objektif di sini.</p>
           </div>
           <Link href="/dashboard" className="text-sm font-bold text-slate-400 hover:text-[#334F70] transition">
-            🏠 Kembali ke Dasbor
+            🏠 Dasbor
           </Link>
         </div>
 
-        {/* PENGATURAN PILIHAN BAHASA ADAPTIF */}
-        <div className="flex justify-center md:justify-start items-center gap-2 bg-[#C8D8E8]/50 p-1.5 rounded-xl w-fit border border-[#C8D8E8]">
-          <button
-            type="button"
-            onClick={() => handleGantiBahasa('id')}
-            className={`px-4 py-2 text-xs font-black rounded-lg transition ${bahasaPilihan === 'id' ? 'bg-[#334F70] text-white shadow-xs' : 'text-[#334F70] hover:bg-white/50'}`}
-          >
-            🇮🇩 Indonesia
-          </button>
-          <button
-            type="button"
-            onClick={() => handleGantiBahasa('en')}
-            className={`px-4 py-2 text-xs font-black rounded-lg transition ${bahasaPilihan === 'en' ? 'bg-[#334F70] text-white shadow-xs' : 'text-[#334F70] hover:bg-white/50'}`}
-          >
-            🇬🇧 English
-          </button>
-          <button
-            type="button"
-            onClick={() => handleGantiBahasa('ar')}
-            className={`px-4 py-2 text-xs font-black rounded-lg transition ${bahasaPilihan === 'ar' ? 'bg-[#334F70] text-white shadow-xs' : 'text-[#334F70] hover:bg-white/50'}`}
-          >
-            🇦🇪 العربية
-          </button>
-        </div>
-
-        {/* PANEL CARD MOSI DINAMIS */}
-        <div 
-          dir={bahasaPilihan === 'ar' ? 'rtl' : 'ltr'} 
-          className="bg-[#C8D8E8] p-6 rounded-2xl border border-[#7EA0CF]/30 space-y-4 shadow-md transition-all duration-300"
-        >
-          <div className={`flex justify-between items-center ${bahasaPilihan === 'ar' ? 'flex-row-reverse' : ''}`}>
-            <span className="px-3 py-1 bg-white text-[#334F70] text-xs font-bold rounded-md border border-[#7EA0CF]/20 shadow-xs">
-              {loadingMosi ? '⏳ Membuka bank data...' : `📌 ${mosiAktif?.jenis || 'Mosi Latihan'}`}
+        {/* Panel Card Mosi */}
+        <div className="bg-[#C8D8E8] p-6 rounded-2xl border border-[#7EA0CF]/30 space-y-4 shadow-md">
+          <div className="flex justify-between items-center">
+            <span className="px-3 py-1 bg-white text-[#334F70] text-xs font-bold rounded-md border border-[#7EA0CF]/20">
+              📌 {mosiAktif?.jenis || 'Mosi Latihan'}
             </span>
-            {!loadingMosi && allMotions.length > 0 && mosiAktif?.jenis !== "Kosong" && (
-              <button
-                type="button"
-                onClick={() => handleAcakMosi(bahasaPilihan)}
-                className="text-xs font-black text-[#334F70] hover:text-[#7EA0CF] flex items-center gap-1 transition outline-hidden cursor-pointer"
-              >
-                🔄 {bahasaPilihan === 'ar' ? 'تغيير القضية' : 'Acak Mosi Latihan Baru'}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => handleAcakMosi(bahasaPilihan)}
+              className="text-xs font-black text-[#334F70] hover:text-[#7EA0CF] transition cursor-pointer"
+            >
+              🔄 Acak Mosi Baru
+            </button>
           </div>
-          <p className={`text-[#334F70] font-black text-xl leading-relaxed ${bahasaPilihan === 'ar' ? 'text-right font-semibold' : ''}`}>
-            {loadingMosi ? 'Menyiapkan tantangan mosi baru...' : `"${mosiAktif?.teks || 'Belum ada mosi terdaftar.'}"`}
-          </p>
-          <p className="text-xs text-[#334F70]/70 font-semibold">
-            {bahasaPilihan === 'ar' 
-              ? '*إرشادات: قم ببناء هيكل الحجة الخاص بك بناءً على منطق AREL الكامل للقضية أعلاه.'
-              : '*Instruksi: Susun struktur kasus tim pro/kontra kamu merujuk pada penalaran logika utuh AREL untuk mosi di atas.'}
+          <p className="text-[#334F70] font-black text-xl leading-relaxed">
+            "{mosiAktif?.teks || 'Belum ada mosi terdaftar.'}"
           </p>
         </div>
 
-        {/* Form Penginputan Teks & Kontrol Fitur Suara */}
+        {/* Form Input Argumen */}
         <form onSubmit={handleKirimArgumen} className="space-y-4">
-          <div className="flex flex-col space-y-2">
-            <div className={`flex justify-between items-center ${bahasaPilihan === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <label className="text-sm font-bold text-[#334F70]">
-                {bahasaPilihan === 'ar' ? 'اكتب أو أملِ حجة المناظرة الخاصة بك:' : 'Ketikan Struktur Argumen Konstruksi Kasus Kamu:'}
-              </label>
-              
-              <button
-                type="button"
-                disabled={loading || loadingMosi || mosiAktif?.jenis === "Kosong"}
-                onClick={tanganiInputSuara}
-                className={`px-4 py-2 text-xs font-black rounded-xl transition flex items-center gap-2 shadow-xs disabled:opacity-50 cursor-pointer ${
-                  sedangMerekam 
-                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
-                    : 'bg-[#C8D8E8] hover:bg-[#b8c8d8] text-[#334F70]'
-                }`}
-              >
-                {sedangMerekam ? (
-                  <>
-                    <span className="inline-block w-2 h-2 rounded-full bg-white animate-ping"></span>
-                    {bahasaPilihan === 'ar' ? 'جاري الاستماع...' : 'Mendengarkan...'}
-                  </>
-                ) : (
-                  <>🎙️ {bahasaPilihan === 'ar' ? 'ابدأ التحدث (الإملاء الصوتي)' : 'Mulai Bicara (Dikte Suara)'}</>
-                )}
-              </button>
-            </div>
-
-            <textarea
-              disabled={loading || loadingMosi || mosiAktif?.jenis === "Kosong"}
-              value={teksArgumen}
-              onChange={(e) => setTeksArgumen(e.target.value)}
-              dir={bahasaPilihan === 'ar' ? 'rtl' : 'ltr'}
-              placeholder={bahasaPilihan === 'ar' 
-                ? '...Assertion) أنا أؤيد هذه القضية لأن) :مثال' 
-                : 'Contoh: (Assertion) Saya setuju dengan mosi ini karena... (Reasoning) Hubungan sebab-akibatnya adalah... (Evidence) Contoh nyata di status quo...'}
-              className="w-full h-48 p-4 bg-white border border-[#C8D8E8] rounded-2xl focus:outline-hidden focus:border-[#7EA0CF] text-[#334F70] font-medium placeholder-slate-400 shadow-sm text-sm leading-relaxed transition"
-            />
-          </div>
+          <textarea
+            disabled={loading}
+            value={teksArgumen}
+            onChange={(e) => setTeksArgumen(e.target.value)}
+            placeholder="Ketikan struktur argumen konstruksi kasus kamu di sini (Assertion, Reasoning, Evidence, Link-back)..."
+            className="w-full h-48 p-4 bg-white border border-[#C8D8E8] rounded-2xl focus:outline-hidden focus:border-[#7EA0CF] text-[#334F70] font-medium placeholder-slate-400 shadow-sm text-sm leading-relaxed transition"
+          />
 
           <button
             type="submit"
-            disabled={loading || loadingMosi || sedangMerekam || mosiAktif?.jenis === "Kosong"}
-            className="w-full py-4 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl shadow-md shadow-[#334F70]/10 text-sm transition duration-200 disabled:opacity-50 cursor-pointer"
+            disabled={loading}
+            className="w-full py-4 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black rounded-xl shadow-md text-sm transition cursor-pointer disabled:opacity-50"
           >
-            {loading ? (
-              <span className="animate-pulse">
-                {bahasaPilihan === 'ar' ? '⏳ جاري تحليل الحجة من قبل الذكاء الاصطناعي...' : '⏳ Juri AI Sedang Membedah Argumenmu...'}
-              </span>
-            ) : (
-              <>{bahasaPilihan === 'ar' ? '🚀 إرسال إلى المحكم الآلي' : '🚀 Kirim ke Juri AI Evaluator'}</>
-            )}
+            {loading ? '⏳ Juri AI Sedang Membedah Argumenmu...' : '🚀 Kirim ke Juri AI Evaluator'}
           </button>
         </form>
 
@@ -404,45 +257,101 @@ export default function RuangPraktikPage() {
           </div>
         )}
 
-        {/* BOX HASIL PENILAIAN JURI AI (DENGAN TAMPILAN CARD HIGHLIGHT AREL) */}
+        {/* HASIL EVALUASI JURI AI DENGAN BADGE RED/GREEN & BREAKDOWN 4 UNSUR */}
         {hasilEvaluasi && (
-          <div 
-            dir={bahasaPilihan === 'ar' ? 'rtl' : 'ltr'} 
-            className="bg-white rounded-2xl border border-[#C8D8E8] overflow-hidden shadow-xl space-y-6 p-6 animate-fadeIn"
-          >
-            <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[#F3F3F4] pb-4 gap-2 ${bahasaPilihan === 'ar' ? 'sm:flex-row-reverse' : ''}`}>
-              <div>
+          <div className="bg-white rounded-2xl border border-[#C8D8E8] overflow-hidden shadow-xl space-y-6 p-6">
+            
+            {/* Header Skor & Status Kelayakan Badge */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[#F3F3F4] pb-5 gap-4">
+              <div className="space-y-2">
                 <h3 className="text-lg font-black text-[#334F70]">
-                  {bahasaPilihan === 'ar' ? '📊 نتيجة تحليل المحكم الآلي' : '📊 Skor Hasil Analisis Juri AI'}
+                  📊 Skor Hasil Analisis Juri AI
                 </h3>
-                <p className="text-xs text-slate-400 font-medium">
-                  {bahasaPilihan === 'ar' ? 'تم الحساب بناءً على تطابق البيانات مع Chroma DB.' : 'Dihitung real-time berdasarkan keselarasan petaan Chroma DB.'}
-                </p>
+                {/* STATUS BADGE LAYAK / TIDAK LAYAK */}
+                <div>
+                  {isLayak ? (
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-black rounded-full shadow-2xs">
+                      🟢 LAYAK (Memenuhi Standar Minim)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-100 border border-rose-300 text-rose-800 text-xs font-black rounded-full shadow-2xs">
+                      🔴 TIDAK LAYAK (Perlu Perbaikan)
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="text-center px-5 py-2.5 bg-[#F3F3F4] rounded-xl border border-[#C8D8E8]">
-                <span className="text-3xl font-black text-[#334F70]">{hasilEvaluasi.skor_AREL}</span>
-                <span className="text-slate-400 text-xs font-bold block mt-0.5">{bahasaPilihan === 'ar' ? 'درجة AREL' : 'Skor AREL'}</span>
+
+              {/* Box Angka Total Skor */}
+              <div className={`text-center px-6 py-3 rounded-2xl border ${isLayak ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                <span className={`text-3xl font-black ${isLayak ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {evalData.skor_AREL || 0}
+                </span>
+                <span className="text-slate-400 text-[10px] font-bold block uppercase tracking-wider mt-0.5">Skor AREL / 100</span>
               </div>
             </div>
 
-            {/* Bonus Hadiah XP Panel */}
-            <div className={`p-4 bg-[#F2EBC3]/60 border border-amber-300/50 rounded-xl flex items-center justify-between text-xs text-[#334F70] font-bold ${bahasaPilihan === 'ar' ? 'flex-row-reverse' : ''}`}>
-              <span>{bahasaPilihan === 'ar' ? '✨ تهانينا! لقد زادت خبرتك من خلال هذه الممارسة.' : '✨ Selamat! Kompetensimu meningkat dari latihan mandiri ini.'}</span>
+            {/* BREAKDOWN 4 MINI PROGRESS BAR SUB-UNSUR DENGAN STANDAR MINIMAL BARU */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+              <span className="text-xs font-bold text-[#334F70] uppercase tracking-wider block mb-2">Rincian Nilai Komponen AREL (Maks 25 / Unsur):</span>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
+                {/* 1. Assertion */}
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-blue-800">🔹 Assertion (Min. 10):</span>
+                    <span>{evalData.assertion_score || 0} / 25</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-blue-500 h-full rounded-full" style={{ inlineSize: `${((evalData.assertion_score || 0) / 25) * 100}%` }} />                  </div>
+                </div>
+
+                {/* 2. Reasoning */}
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-amber-800">🔸 Reasoning (Min. 15):</span>
+                    <span>{evalData.reasoning_score || 0} / 25</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-amber-500 h-full rounded-full" style={{ inlineSize: `${((evalData.reasoning_score || 0) / 25) * 100}%` }} />                  </div>
+                </div>
+
+                {/* 3. Evidence */}
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-emerald-800">📊 Evidence (Min. 15):</span>
+                    <span>{evalData.evidence_score || 0} / 25</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-emerald-500 h-full rounded-full" style={{ inlineSize: `${((evalData.evidence_score || 0) / 25) * 100}%` }} />                  </div>
+                </div>
+
+                {/* 4. Link-back */}
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-purple-800">🔗 Link-back (Min. 10):</span>
+                    <span>{evalData.linkback_score || 0} / 25</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-purple-500 h-full rounded-full" style={{ inlineSize: `${((evalData.linkback_score || 0) / 25) * 100}%` }} />                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bonus XP */}
+            <div className="p-3.5 bg-[#F2EBC3]/60 border border-amber-300/50 rounded-xl flex items-center justify-between text-xs text-[#334F70] font-bold">
+              <span>✨ Perolehan Pengalaman dari Sesi Latihan Ini:</span>
               <span className="font-black bg-[#334F70] text-white px-2.5 py-1 rounded-md">+{hasilEvaluasi.xp_diperoleh} XP</span>
             </div>
 
-            {/* Konten Feedback Terstruktur AREL */}
+            {/* Konten Ulasan & Rekomendasi Terpisah */}
             <div className="space-y-3">
-              <h4 className={`text-sm font-black text-[#334F70] flex items-center gap-1.5 ${bahasaPilihan === 'ar' ? 'flex-row-reverse' : ''}`}>
-                <span>📝</span> {bahasaPilihan === 'ar' ? 'تقرير الملاحظات الأكاديمية (المراجعة):' : 'Lembar Umpan Balik Akademik (Ulasan AREL):'}
+              <h4 className="text-sm font-black text-[#334F70] flex items-center gap-1.5">
+                <span>📝</span> Lembar Umpan Balik Akademik (Ulasan AREL):
               </h4>
               
-              {/* RENDERING DENGAN KOMPONEN FORMATTED FEEDBACK */}
-              <FormattedFeedback 
-                text={hasilEvaluasi.feedback_ai} 
-                isArabic={bahasaPilihan === 'ar'} 
-              />
+              <FormattedFeedback text={evalData.feedback_ai || ''} />
             </div>
+
           </div>
         )}
 

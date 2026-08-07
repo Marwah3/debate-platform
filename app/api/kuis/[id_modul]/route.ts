@@ -1,6 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Helper Function: Kalkulasi Level Berdasarkan Total XP (Level 1 - 10)
+function calculateLevel(totalXp: number): number {
+  if (totalXp >= 3000) return 10;
+  if (totalXp >= 2600) return 9;
+  if (totalXp >= 2200) return 8;
+  if (totalXp >= 1800) return 7;
+  if (totalXp >= 1400) return 6;
+  if (totalXp >= 1000) return 5;
+  if (totalXp >= 700)  return 4;
+  if (totalXp >= 400)  return 3;
+  if (totalXp >= 150)  return 2;
+  return 1;
+}
+
 // 1. MENGAMBIL DAFTAR SOAL KUIS (GET)
 export async function GET(
   request: Request,
@@ -26,7 +40,7 @@ export async function GET(
   }
 }
 
-// 2. PROSES EVALUASI SKOR, XP, LEVEL, DAN UNLOCK MODUL (POST)
+// 2. PROSES EVALUASI SKOR, XP, LEVEL, UNLOCK MODUL, DAN LOG (POST)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id_modul: string }> }
@@ -42,51 +56,98 @@ export async function POST(
       return NextResponse.json({ error: 'Data evaluasi kompetensi tidak lengkap' }, { status: 400 });
     }
 
-    // Evaluasi Kelulusan: Jika skor mahasiswa mencapai batas minimal lulus (70)
-    if (skor >= 70) {
-      // A. Cari urutan dari modul yang baru saja dikerjakan kuisnya
+    const userIdNum = Number(id_user);
+    const skorNum = Number(skor) || 0;
+    const isLulus = skorNum >= 70; // Standar kelulusan minimum 70
+
+    let xpBonus = 0;
+    let isRepeatCompletion = false;
+
+    // Evaluasi Kelulusan
+    if (isLulus) {
+      // A. UNLOCK MODUL SELANJUTNYA: Cari urutan modul saat ini
       const currentModul = await prisma.moduls.findUnique({
         where: { id_modul: idModulNum }
       });
 
       if (currentModul) {
-        // PERBAIKAN TYPESCRIPT: Menggunakan (currentModul.urutan ?? 0) untuk menghindari error null check
         const urutanBerikutnya = (currentModul.urutan ?? 0) + 1;
 
-        // B. UNLOCK MODUL SELANJUTNYA: Ubah status_lock menjadi false di MySQL
+        // Ubah status_lock modul berikutnya menjadi false
         await prisma.moduls.updateMany({
           where: { urutan: urutanBerikutnya },
           data: { status_lock: false }
         });
       }
 
-      // C. UPDATE GAMIFIKASI USER: Ambil status XP saat ini di database
-      const userLama = await prisma.users.findUnique({ 
-        where: { id_user: Number(id_user) } 
-      });
-
-      if (userLama) {
-        // '|| 0' untuk mengantisipasi jika total_xp berstatus null di database
-        const xpLama = userLama.total_xp || 0;
-        const totalXpBaru = xpLama + 100; 
-        
-        // Logika naik level berkelanjutan secara objektif: 1 Level tiap kelipatan 100 XP
-        const levelBaru = Math.floor(totalXpBaru / 100) + 1; 
-
-        // Simpan akumulasi kompetensi baru ke dalam database tabel users
-        await prisma.users.update({
-          where: { id_user: Number(id_user) },
-          data: {
-            total_xp: totalXpBaru,
-            current_level: levelBaru
+      // B. CEK PROTEKSI SPAM XP: Cek apakah user sudah PERNAH LULUS kuis modul ini sebelumnya
+      let existingLog: any = null;
+      try {
+        existingLog = await (prisma as any).log_kuis.findFirst({
+          where: {
+            id_user: userIdNum,
+            id_modul: idModulNum,
+            is_lulus: true,
           }
         });
+      } catch (err) {
+        console.warn("⚠️ Warning: log_kuis belum terdeteksi saat pengecekan riwayat.");
+      }
+
+      // C. HANYA BERIKAN XP JIKA PERTAMA KALI LULUS
+      if (!existingLog) {
+        xpBonus = 50; // Bonus +50 XP per modul yang baru lulus
+      } else {
+        isRepeatCompletion = true;
+      }
+
+      // D. CATAT KE TABEL LOG_KUIS
+      try {
+        await (prisma as any).log_kuis.create({
+          data: {
+            id_user: userIdNum,
+            id_modul: idModulNum,
+            nilai: skorNum,
+            is_lulus: true,
+            xp_diperoleh: xpBonus,
+          }
+        });
+      } catch (err) {
+        console.warn("⚠️ Warning: Gagal membuat record di log_kuis.");
+      }
+
+      // E. UPDATE GAMIFIKASI USER (TOTAL XP & CURRENT LEVEL) HANYA JIKA MENDAPAT XP BARU
+      if (xpBonus > 0) {
+        const userLama = await prisma.users.findUnique({ 
+          where: { id_user: userIdNum } 
+        });
+
+        if (userLama) {
+          const xpLama = userLama.total_xp || 0;
+          const totalXpBaru = xpLama + xpBonus; 
+          const levelBaru = calculateLevel(totalXpBaru);
+
+          await prisma.users.update({
+            where: { id_user: userIdNum },
+            data: {
+              total_xp: totalXpBaru,
+              current_level: levelBaru
+            }
+          });
+        }
       }
     }
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Sinkronisasi gamifikasi dan status lock ke MySQL sukses!' 
+      is_lulus: isLulus,
+      xp_diperoleh: xpBonus,
+      is_repeat: isRepeatCompletion,
+      message: isLulus 
+        ? (isRepeatCompletion 
+            ? 'Kuis selesai dikerjakan kembali! (XP tidak bertambah karena modul sudah pernah lulus).' 
+            : `Selamat! Kamu lulus kuis dan memperoleh +${xpBonus} XP!`)
+        : 'Nilai kuis belum memenuhi batas minimum kelulusan (70).'
     }, { status: 200 });
 
   } catch (error: any) {
