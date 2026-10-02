@@ -148,7 +148,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center rounded-xl bg-linear-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Memproses...' : 'Daftar Akun ✓'}
             </button>

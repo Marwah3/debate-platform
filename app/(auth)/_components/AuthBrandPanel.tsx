@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export default function AuthBrandPanel({ children }: { children: ReactNode }) {
   return (
-    <div className="relative isolate flex h-full w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-[#3c5b7d] via-[#334F70] to-[#263d59] px-8 py-12 text-center text-[#F3F3F4]">
+    <div className="relative isolate flex h-full w-full flex-col items-center justify-center overflow-hidden bg-linear-to-br from-[#3c5b7d] via-[#334F70] to-[#263d59] px-8 py-12 text-center text-[#F3F3F4]">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -right-28 -top-32 h-80 w-80 rounded-full border border-white/10" />
         <div className="absolute -right-12 -top-16 h-48 w-48 rounded-full border border-white/10" />

@@ -165,7 +165,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-linear-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Memproses...' : 'Masuk'}
             </button>
@@ -255,7 +255,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-linier-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Mendaftar...' : 'Daftar Akun ✓'}
             </button>
