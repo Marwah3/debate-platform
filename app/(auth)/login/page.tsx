@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
+import AuthBrandPanel from '../_components/AuthBrandPanel';
 
 export default function AuthPage() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -53,8 +54,8 @@ export default function AuthPage() {
         router.push('/dashboard');
       }
       
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Terjadi kesalahan jaringan.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Terjadi kesalahan jaringan.');
     } finally {
       setLoading(false);
     }
@@ -89,49 +90,45 @@ export default function AuthPage() {
       setIsRegisterMode(false);
       setLoginUsername(regForm.username);
       setRegForm({ username: '', email: '', password: '', confirmPassword: '' });
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Terjadi kesalahan saat mendaftar.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Terjadi kesalahan saat mendaftar.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-screen h-screen bg-white relative flex overflow-hidden select-none">
+    <div className="relative flex min-h-screen w-full select-none overflow-x-hidden bg-white lg:h-screen lg:overflow-hidden">
       
       {/* PANEL 1: BACKGROUND NAVY */}
       <div 
-        className={`hidden lg:flex absolute top-0 bottom-0 w-1/2 bg-[#334F70] text-[#F3F3F4] p-12 flex-col justify-center items-center text-center space-y-6 z-20 transition-all duration-700 ease-in-out ${
+        className={`absolute inset-y-0 z-20 hidden w-1/2 overflow-hidden text-[#F3F3F4] transition-[left] duration-700 ease-in-out lg:block ${
           isRegisterMode ? 'left-1/2' : 'left-0'
         }`}
       >
-        <div className="space-y-3 animate-fadeIn">
-          <h1 className="text-5xl font-black tracking-tight text-white">Debat Platform</h1>
-          <p className="text-base text-[#C8D8E8] font-medium max-w-xs mx-auto">
-            Latihan Debat Kapan Saja, Di Mana Saja
-          </p>
-        </div>
-
-        <div className="pt-4">
-          <button
-            onClick={() => { setIsRegisterMode(!isRegisterMode); setErrorMsg(''); }}
-            className="px-8 py-3 border-2 border-[#C8D8E8] text-white text-sm font-bold rounded-xl hover:bg-white/10 transition duration-200"
-          >
-            {isRegisterMode ? 'Sudah Punya Akun? Masuk' : 'Belum Punya Akun? Daftar'}
-          </button>
-        </div>
+        <AuthBrandPanel>
+          <div className="pt-5">
+            <button
+              onClick={() => { setIsRegisterMode(!isRegisterMode); setErrorMsg(''); }}
+              className="rounded-xl border border-[#C8D8E8]/80 bg-white/5 px-8 py-3 text-sm font-bold text-white transition duration-200 hover:border-white hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+            >
+              {isRegisterMode ? 'Sudah Punya Akun? Masuk' : 'Belum Punya Akun? Daftar'}
+            </button>
+          </div>
+        </AuthBrandPanel>
       </div>
 
       {/* PANEL 2: FORM LOGIN */}
       <div 
-        className={`w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-[#F3F3F4] lg:bg-white transition-all duration-700 ease-in-out absolute top-0 bottom-0 right-0 z-10 ${
+        className={`absolute inset-y-0 right-0 z-10 flex min-h-screen w-full items-center justify-center overflow-y-auto bg-[#F3F3F4] p-5 transition-all duration-700 ease-in-out sm:p-8 lg:min-h-0 lg:w-1/2 lg:bg-white ${
           isRegisterMode ? 'opacity-0 pointer-events-none lg:translate-x-10' : 'opacity-100 translate-x-0'
         }`}
       >
-        <div className="w-full max-w-md space-y-6 bg-white lg:bg-transparent p-8 lg:p-0 rounded-2xl border border-[#C8D8E8] lg:border-none shadow-md lg:shadow-none">
+        <div className="w-full max-w-md space-y-6 rounded-3xl border border-[#D8E3EE] bg-white p-6 shadow-xl shadow-[#334F70]/5 sm:p-9 lg:rounded-none lg:border-none lg:bg-transparent lg:p-0 lg:shadow-none">
+          <p className="text-xs font-black tracking-[0.18em] text-[#7DA7D9] lg:hidden">DEBAT PLATFORM · UNIDA GONTOR</p>
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-[#334F70]">Selamat Datang Kembali</h2>
-            <p className="text-sm text-slate-400 mt-1">Masuk untuk melanjutkan latihan debat akademik anda.</p>
+            <p className="text-sm text-slate-400 mt-1">Masuk untuk melanjutkan latihan debat akademik Anda.</p>
           </div>
 
           {errorMsg && !isRegisterMode && (
@@ -147,7 +144,7 @@ export default function AuthPage() {
                 type="text"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                className="w-full rounded-xl border border-[#D4E1EE] bg-[#F4F6F8] p-4 text-sm font-medium text-[#334F70] transition placeholder:text-slate-400 focus:border-[#7DA7D9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#7DA7D9]/15"
                 placeholder="Ketik username Anda..."
                 required
               />
@@ -159,7 +156,7 @@ export default function AuthPage() {
                 type="password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                className="w-full rounded-xl border border-[#D4E1EE] bg-[#F4F6F8] p-4 text-sm font-medium text-[#334F70] transition placeholder:text-slate-400 focus:border-[#7DA7D9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#7DA7D9]/15"
                 placeholder="••••••••"
                 required
               />
@@ -168,7 +165,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white py-4 rounded-xl font-bold text-sm transition shadow-md shadow-[#334F70]/10"
+              className="w-full rounded-xl bg-gradient-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Memproses...' : 'Masuk'}
             </button>
@@ -176,20 +173,25 @@ export default function AuthPage() {
 
           <p className="text-center text-sm text-slate-500 lg:hidden">
             Belum punya akun?{' '}
-            <span onClick={() => setIsRegisterMode(true)} className="text-[#334F70] font-bold cursor-pointer hover:underline">
+            <button
+              type="button"
+              onClick={() => { setIsRegisterMode(true); setErrorMsg(''); }}
+              className="font-bold text-[#334F70] hover:underline"
+            >
               Daftar di sini
-            </span>
+            </button>
           </p>
         </div>
       </div>
 
       {/* PANEL 3: FORM REGISTER */}
       <div 
-        className={`w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-[#F3F3F4] lg:bg-white transition-all duration-700 ease-in-out absolute top-0 bottom-0 left-0 z-10 ${
+        className={`absolute inset-y-0 left-0 z-10 flex min-h-screen w-full items-center justify-center overflow-y-auto bg-[#F3F3F4] p-5 transition-all duration-700 ease-in-out sm:p-8 lg:min-h-0 lg:w-1/2 lg:bg-white ${
           isRegisterMode ? 'opacity-100 translate-x-0' : 'opacity-0 pointer-events-none lg:-translate-x-10'
         }`}
       >
-        <div className="w-full max-w-md space-y-5 bg-white lg:bg-transparent p-8 lg:p-0 rounded-2xl border border-[#C8D8E8] lg:border-none shadow-md lg:shadow-none">
+        <div className="w-full max-w-md space-y-5 rounded-3xl border border-[#D8E3EE] bg-white p-6 shadow-xl shadow-[#334F70]/5 sm:p-9 lg:rounded-none lg:border-none lg:bg-transparent lg:p-0 lg:shadow-none">
+          <p className="text-xs font-black tracking-[0.18em] text-[#7DA7D9] lg:hidden">DEBAT PLATFORM · UNIDA GONTOR</p>
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-[#334F70]">Registrasi Akun Baru</h2>
             <p className="text-sm text-slate-400 mt-1">Buat akun debater akademik kamu sekarang.</p>
@@ -208,7 +210,7 @@ export default function AuthPage() {
                 type="text"
                 value={regForm.username}
                 onChange={(e) => setRegForm({...regForm, username: e.target.value})}
-                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                className="w-full rounded-xl border border-[#D4E1EE] bg-[#F4F6F8] p-4 text-sm font-medium text-[#334F70] transition placeholder:text-slate-400 focus:border-[#7DA7D9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#7DA7D9]/15"
                 placeholder="Buat username unik..."
                 required
               />
@@ -220,7 +222,7 @@ export default function AuthPage() {
                 type="email"
                 value={regForm.email}
                 onChange={(e) => setRegForm({...regForm, email: e.target.value})}
-                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                className="w-full rounded-xl border border-[#D4E1EE] bg-[#F4F6F8] p-4 text-sm font-medium text-[#334F70] transition placeholder:text-slate-400 focus:border-[#7DA7D9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#7DA7D9]/15"
                 placeholder="nama@email.com"
                 required
               />
@@ -232,7 +234,7 @@ export default function AuthPage() {
                 type="password"
                 value={regForm.password}
                 onChange={(e) => setRegForm({...regForm, password: e.target.value})}
-                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                className="w-full rounded-xl border border-[#D4E1EE] bg-[#F4F6F8] p-4 text-sm font-medium text-[#334F70] transition placeholder:text-slate-400 focus:border-[#7DA7D9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#7DA7D9]/15"
                 placeholder="••••••••"
                 required
               />
@@ -244,7 +246,7 @@ export default function AuthPage() {
                 type="password"
                 value={regForm.confirmPassword}
                 onChange={(e) => setRegForm({...regForm, confirmPassword: e.target.value})}
-                className="w-full p-4 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl focus:outline-hidden focus:border-[#334F70] text-[#334F70] text-sm font-medium transition"
+                className="w-full rounded-xl border border-[#D4E1EE] bg-[#F4F6F8] p-4 text-sm font-medium text-[#334F70] transition placeholder:text-slate-400 focus:border-[#7DA7D9] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#7DA7D9]/15"
                 placeholder="••••••••"
                 required
               />
@@ -253,7 +255,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white py-4 rounded-xl font-bold text-sm transition duration-150 shadow-md shadow-[#334F70]/10"
+              className="w-full rounded-xl bg-gradient-to-r from-[#7EA0CF] to-[#334F70] py-4 text-sm font-bold text-white shadow-md shadow-[#334F70]/15 transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#334F70] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Mendaftar...' : 'Daftar Akun ✓'}
             </button>
@@ -261,9 +263,13 @@ export default function AuthPage() {
 
           <p className="text-center text-sm text-slate-500 lg:hidden">
             Sudah punya akun?{' '}
-            <span onClick={() => setIsRegisterMode(false)} className="text-[#334F70] font-bold cursor-pointer hover:underline">
+            <button
+              type="button"
+              onClick={() => { setIsRegisterMode(false); setErrorMsg(''); }}
+              className="font-bold text-[#334F70] hover:underline"
+            >
               Masuk di sini
-            </span>
+            </button>
           </p>
         </div>
       </div>

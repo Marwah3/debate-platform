@@ -99,6 +99,9 @@ model landing_stats {
   total_prestasi String  @default("12") @db.VarChar(50)
   total_lomba    String  @default("20+") @db.VarChar(50)
   hero_img       String? @db.Text
+  about_img      String? @db.Text
+  group_img      String? @db.Text
+  cta_img        String? @db.Text
 }
 
 model anggota {

@@ -18,6 +18,9 @@ interface StatData {
   total_prestasi: string;
   total_lomba: string;
   hero_img?: string;
+  about_img?: string;
+  group_img?: string;
+  cta_img?: string;
 }
 
 interface AnggotaItem {
@@ -67,7 +70,7 @@ export default function LandingPage() {
   };
 
   // State Dinamis
-  const [stats, setStats] = useState<StatData>({ total_anggota: "48+", total_prestasi: "12", total_lomba: "20+" });
+  const [stats, setStats] = useState<StatData>({ total_anggota: "-", total_prestasi: "-", total_lomba: "-" });
   const [anggota, setAnggota] = useState<AnggotaItem[]>([
     { id_anggota: 1, nama: "Ahmad Fauzan", posisi: "Ketua UKM", inisial: "AF" },
     { id_anggota: 2, nama: "Rizky Amalia", posisi: "Wakil Ketua", inisial: "RA" },
@@ -84,11 +87,7 @@ export default function LandingPage() {
     { id_prestasi: 3, juara: "Juara 3", lomba: "National University Debate Championship (NUDC)", tahun: "2023", penyelenggara: "Dikti", img_url: IMG.trophy },
     { id_prestasi: 4, juara: "Best Speaker", lomba: "World Schools Debate Exhibition UNIDA", tahun: "2023", penyelenggara: "UNIDA Gontor", img_url: IMG.trophy },
   ]);
-  const [beritaAcara, setBeritaAcara] = useState<BeritaItem[]>([
-    { id_berita: 1, title: "Seminar Nasional Debat Parlementer 2025", date: "12 Maret 2025", tag: "Seminar", img_url: IMG.audience, desc: "Seminar nasional yang menghadirkan para juri dan alumni debat berprestasi sebagai narasumber utama." },
-    { id_berita: 2, title: "Latihan Rutin Bersama Tim Inti UKM", date: "5 Mei 2025", tag: "Latihan", img_url: IMG.speaking, desc: "Sesi latihan intensif berfokus pada penguatan struktur argumen AREL dan teknik refutasi lawan." },
-    { id_berita: 3, title: "Rapat Pleno Rekruitmen Anggota Baru", date: "20 Juni 2025", tag: "Rapat", img_url: IMG.lecture, desc: "Rapat pleno evaluasi proses rekruitmen dan orientasi anggota baru periode 2025/2026." },
-  ]);
+  const [beritaAcara, setBeritaAcara] = useState<BeritaItem[]>([]);
   const [lomba, setLomba] = useState<LombaItem[]>([
     { id_lomba: 1, nama: "NUDC 2024", level: "Nasional", kota: "Jakarta", img_url: IMG.mic },
     { id_lomba: 2, nama: "Olimpiade Debat Kemendikbud", level: "Nasional", kota: "Surabaya", img_url: IMG.speaking },
@@ -109,12 +108,12 @@ export default function LandingPage() {
         if (result?.success && result?.data) {
           if (result.data.stats) setStats(result.data.stats);
           if (Array.isArray(result.data.anggota) && result.data.anggota.length > 0) setAnggota(result.data.anggota);
-          if (Array.isArray(result.data.prestasi) && result.data.prestasi.length > 0) setPrestasi(result.data.prestasi);
-          if (Array.isArray(result.data.berita) && result.data.berita.length > 0) setBeritaAcara(result.data.berita);
-          if (Array.isArray(result.data.lomba) && result.data.lomba.length > 0) setLomba(result.data.lomba);
+          if (Array.isArray(result.data.prestasi)) setPrestasi(result.data.prestasi);
+          if (Array.isArray(result.data.berita)) setBeritaAcara(result.data.berita);
+          if (Array.isArray(result.data.lomba)) setLomba(result.data.lomba);
         }
       } catch (err) {
-        console.log("Menggunakan data default (Fallback Data)");
+        console.error("Gagal memuat data landing page:", err);
       }
     }
     loadLandingData();
@@ -200,7 +199,7 @@ export default function LandingPage() {
           </div>
 
           <div className="relative rounded-3xl overflow-hidden mb-8 h-64 md:h-80 shadow-lg">
-            <img src={IMG.group} alt="Foto tim UKM Debat" className="w-full h-full object-cover object-top" />
+            <img src={stats.group_img || IMG.group} alt="Foto tim UKM Debat" className="w-full h-full object-cover object-top" />
             <div className="absolute inset-0 flex items-end p-6" style={{ background: "linear-gradient(to top, rgba(53,80,111,0.92) 30%, transparent)" }}>
               <p className="font-bold text-white text-base sm:text-lg">Foto Bersama Anggota UKM Debat UNIDA Gontor 2025</p>
             </div>
@@ -256,7 +255,7 @@ export default function LandingPage() {
       <section id="tentang" className="py-16 md:py-20 px-6 md:px-16" style={{ background: C.white }}>
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div className="relative">
-            <img src={IMG.about} alt="Tentang UKM Debat" className="rounded-3xl w-full h-80 md:h-115 object-cover shadow-md" />
+            <img src={stats.about_img || IMG.about} alt="Tentang UKM Debat" className="rounded-3xl w-full h-80 md:h-115 object-cover shadow-md" />
             <div className="absolute -bottom-4 -right-4 px-6 py-4 rounded-2xl shadow-xl" style={{ background: C.navy }}>
               <p className="text-2xl font-extrabold text-white">Est. 2018</p>
               <p className="text-xs font-semibold" style={{ color: C.ice }}>Berdiri sejak 2018</p>
@@ -300,23 +299,35 @@ export default function LandingPage() {
             Kegiatan Terkini
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            {beritaAcara.map((b) => (
-              <div key={b.id_berita} className="rounded-3xl overflow-hidden hover:shadow-lg transition-all duration-300 bg-white" style={{ border: `1.5px solid ${C.ice}` }}>
-                <div className="h-52 overflow-hidden relative">
-                  <img src={b.img_url || IMG.speaking} alt={b.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                  <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold shadow-md" style={{ background: C.cobalt, color: "#fff" }}>
-                    {b.tag}
-                  </span>
+          {beritaAcara.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-6">
+              {beritaAcara.map((b) => (
+                <div key={b.id_berita} className="rounded-3xl overflow-hidden hover:shadow-lg transition-all duration-300 bg-white" style={{ border: `1.5px solid ${C.ice}` }}>
+                  <div className="h-52 overflow-hidden relative bg-[#C7D9EA]">
+                    {b.img_url ? (
+                      <img src={b.img_url} alt={b.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-sm font-semibold text-[#35506F]">
+                        Foto kegiatan belum ditambahkan
+                      </div>
+                    )}
+                    <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold shadow-md" style={{ background: C.cobalt, color: "#fff" }}>
+                      {b.tag}
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <p className="text-xs mb-1.5 font-bold" style={{ color: C.cobalt }}>{b.date}</p>
+                    <h3 className="font-bold text-sm mb-2 leading-snug" style={{ color: C.navy }}>{b.title}</h3>
+                    <p className="text-xs leading-relaxed" style={{ color: "#6b8aaa" }}>{b.desc}</p>
+                  </div>
                 </div>
-                <div className="p-5">
-                  <p className="text-xs mb-1.5 font-bold" style={{ color: C.cobalt }}>{b.date}</p>
-                  <h3 className="font-bold text-sm mb-2 leading-snug" style={{ color: C.navy }}>{b.title}</h3>
-                  <p className="text-xs leading-relaxed" style={{ color: "#6b8aaa" }}>{b.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="rounded-2xl border border-[#C7D9EA] bg-white p-8 text-center text-sm font-medium text-[#6b8aaa]">
+              Belum ada kegiatan terbaru. Informasi kegiatan dapat ditambahkan melalui Kelola Landing Page.
+            </p>
+          )}
         </div>
       </section>
 
@@ -351,7 +362,7 @@ export default function LandingPage() {
       {/* ── 7. CTA FOOTER ── */}
       <section className="py-20 px-6 text-center relative overflow-hidden" style={{ background: C.navy }}>
         <div className="absolute inset-0 opacity-15">
-          <img src={IMG.hero} alt="" className="w-full h-full object-cover" />
+          <img src={stats.cta_img || stats.hero_img || IMG.hero} alt="" className="w-full h-full object-cover" />
         </div>
         <div className="relative z-10 max-w-xl mx-auto space-y-4">
           <h2 className="text-3xl md:text-4xl font-extrabold text-white leading-tight">

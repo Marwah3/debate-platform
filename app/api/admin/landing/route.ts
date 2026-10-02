@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizeImageUrl } from '@/lib/imageUrl';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,41 +16,62 @@ export async function POST(request: Request) {
 
     // 1. UPDATE STATISTIK HERO
     if (type === 'stats') {
+      const heroImage = normalizeImageUrl(payload.hero_img);
+      const aboutImage = normalizeImageUrl(payload.about_img);
+      const groupImage = normalizeImageUrl(payload.group_img);
+      const ctaImage = normalizeImageUrl(payload.cta_img);
+      const invalidImage = [heroImage, aboutImage, groupImage, ctaImage].find((image) => image.error);
+      if (invalidImage?.error) {
+        return NextResponse.json({ success: false, message: invalidImage.error }, { status: 400 });
+      }
+
+      const imageData = {
+        hero_img: heroImage.url,
+        about_img: aboutImage.url,
+        group_img: groupImage.url,
+        cta_img: ctaImage.url,
+      };
       const existingStats = await prisma.landing_stats.findFirst();
 
       if (existingStats) {
-        const updated = await prisma.landing_stats.update({
-          where: { id_stats: existingStats.id_stats },
-          data: {
-            total_anggota: payload.total_anggota,
-            total_prestasi: payload.total_prestasi,
-            total_lomba: payload.total_lomba,
-            hero_img: payload.hero_img || null,
-          },
-        });
-        return NextResponse.json({ success: true, data: updated });
+        await prisma.$executeRaw`
+          UPDATE landing_stats
+          SET hero_img = ${imageData.hero_img},
+              about_img = ${imageData.about_img},
+              group_img = ${imageData.group_img},
+              cta_img = ${imageData.cta_img}
+          WHERE id_stats = ${existingStats.id_stats}
+        `;
+        return NextResponse.json({ success: true, data: { ...existingStats, ...imageData } });
       } else {
         const created = await prisma.landing_stats.create({
-          data: {
-            total_anggota: payload.total_anggota,
-            total_prestasi: payload.total_prestasi,
-            total_lomba: payload.total_lomba,
-            hero_img: payload.hero_img || null,
-          },
+          data: { hero_img: imageData.hero_img },
         });
-        return NextResponse.json({ success: true, data: created });
+        await prisma.$executeRaw`
+          UPDATE landing_stats
+          SET about_img = ${imageData.about_img},
+              group_img = ${imageData.group_img},
+              cta_img = ${imageData.cta_img}
+          WHERE id_stats = ${created.id_stats}
+        `;
+        return NextResponse.json({ success: true, data: { ...created, ...imageData } });
       }
     }
 
     // 2. TAMBAH BERITA ACARA
     if (type === 'berita') {
+      const image = normalizeImageUrl(payload.img_url);
+      if (image.error) {
+        return NextResponse.json({ success: false, message: image.error }, { status: 400 });
+      }
+
       const newBerita = await prisma.berita_acara.create({
         data: {
           title: payload.title,
           date: payload.date,
           tag: payload.tag || 'Seminar',
           desc: payload.desc || '',
-          img_url: payload.img_url || '',
+          img_url: image.url || '',
         },
       });
       return NextResponse.json({ success: true, data: newBerita });
@@ -57,13 +79,18 @@ export async function POST(request: Request) {
 
     // 3. TAMBAH PRESTASI
     if (type === 'prestasi') {
+      const image = normalizeImageUrl(payload.img_url);
+      if (image.error) {
+        return NextResponse.json({ success: false, message: image.error }, { status: 400 });
+      }
+
       const newPrestasi = await prisma.prestasi.create({
         data: {
           juara: payload.juara,
           lomba: payload.lomba,
           tahun: payload.tahun,
           penyelenggara: payload.penyelenggara,
-          img_url: payload.img_url || '',
+          img_url: image.url || '',
         },
       });
       return NextResponse.json({ success: true, data: newPrestasi });
@@ -72,12 +99,17 @@ export async function POST(request: Request) {
     
     // 4. TAMBAH LOMBA DIIKUTI
     if (type === 'lomba') {
+      const image = normalizeImageUrl(payload.image_url);
+      if (image.error) {
+        return NextResponse.json({ success: false, message: image.error }, { status: 400 });
+      }
+
       const newLomba = await prisma.lomba.create({
         data: {
           nama_lomba: payload.nama_lomba,
           kategori: payload.kategori || 'Nasional',
           lokasi: payload.lokasi,
-          image_url: payload.image_url || '',
+          image_url: image.url || '',
         },
       });
       return NextResponse.json({ success: true, data: newLomba });

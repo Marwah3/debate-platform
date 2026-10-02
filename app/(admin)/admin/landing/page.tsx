@@ -8,10 +8,13 @@ export default function AdminLandingPage() {
   const [activeTab, setActiveTab] = useState<'stats' | 'berita' | 'prestasi' | 'lomba'>('stats');
 
   // --- STATE FORM STATISTIK ---
-  const [totalAnggota, setTotalAnggota] = useState('48+');
-  const [totalPrestasi, setTotalPrestasi] = useState('12');
-  const [totalLomba, setTotalLomba] = useState('20+');
+  const [totalAnggota, setTotalAnggota] = useState('-');
+  const [totalPrestasi, setTotalPrestasi] = useState('-');
+  const [totalLomba, setTotalLomba] = useState('-');
   const [heroImg, setHeroImg] = useState('');
+  const [aboutImg, setAboutImg] = useState('');
+  const [groupImg, setGroupImg] = useState('');
+  const [ctaImg, setCtaImg] = useState('');
 
   // --- STATE FORM BERITA ---
   const [judulBerita, setJudulBerita] = useState('');
@@ -46,10 +49,13 @@ export default function AdminLandingPage() {
       const resData = await res.json();
       if (res.ok && resData.data) {
         if (resData.data.stats) {
-          setTotalAnggota(resData.data.stats.total_anggota || '48+');
-          setTotalPrestasi(resData.data.stats.total_prestasi || '12');
-          setTotalLomba(resData.data.stats.total_lomba || '20+');
+          setTotalAnggota(resData.data.stats.total_anggota || '0');
+          setTotalPrestasi(resData.data.stats.total_prestasi || '0');
+          setTotalLomba(resData.data.stats.total_lomba || '0');
           setHeroImg(resData.data.stats.hero_img || '');
+          setAboutImg(resData.data.stats.about_img || '');
+          setGroupImg(resData.data.stats.group_img || '');
+          setCtaImg(resData.data.stats.cta_img || '');
         }
         setBeritaData(resData.data.berita || []);
         setPrestasiData(resData.data.prestasi || []);
@@ -77,17 +83,18 @@ export default function AdminLandingPage() {
         body: JSON.stringify({
           type: 'stats',
           payload: {
-            total_anggota: totalAnggota,
-            total_prestasi: totalPrestasi,
-            total_lomba: totalLomba,
             hero_img: heroImg,
+            about_img: aboutImg,
+            group_img: groupImg,
+            cta_img: ctaImg,
           },
         }),
       });
 
-      if (!res.ok) throw new Error('Gagal menyimpan statistik');
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Gagal menyimpan foto landing page');
 
-      alert('Statistik hero berhasil diperbarui!');
+      alert('Foto landing page berhasil diperbarui!');
       fetchData();
     } catch (err: any) {
       alert(err.message);
@@ -121,7 +128,8 @@ export default function AdminLandingPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Gagal menambah berita');
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Gagal menambah berita');
 
       alert('Berita acara berhasil ditambahkan!');
       setJudulBerita('');
@@ -161,7 +169,8 @@ export default function AdminLandingPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Gagal menambah prestasi');
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Gagal menambah prestasi');
 
       alert('Capaian prestasi berhasil ditambahkan!');
       setJuaraPrestasi('');
@@ -201,7 +210,8 @@ export default function AdminLandingPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Gagal menambah data lomba');
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Gagal menambah data lomba');
 
       alert('Data lomba berhasil ditambahkan!');
       setNamaLomba('');
@@ -291,50 +301,15 @@ export default function AdminLandingPage() {
       {activeTab === 'stats' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="bg-white p-6 rounded-2xl border border-[#C8D8E8] shadow-sm space-y-4">
-            <h2 className="text-lg font-extrabold border-b border-[#F3F3F4] pb-2">✏️ Edit Angka Statistik Hero</h2>
+            <h2 className="text-lg font-extrabold border-b border-[#F3F3F4] pb-2">📊 Statistik Otomatis & Foto Hero</h2>
             
             <form onSubmit={handleSaveStats} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Total Anggota Aktif
-                </label>
-                <input
-                  type="text"
-                  value={totalAnggota}
-                  onChange={(e) => setTotalAnggota(e.target.value)}
-                  placeholder="Contoh: 48+"
-                  className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-semibold transition"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Total Prestasi Diraih
-                </label>
-                <input
-                  type="text"
-                  value={totalPrestasi}
-                  onChange={(e) => setTotalPrestasi(e.target.value)}
-                  placeholder="Contoh: 12"
-                  className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-semibold transition"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  Total Lomba Diikuti
-                </label>
-                <input
-                  type="text"
-                  value={totalLomba}
-                  onChange={(e) => setTotalLomba(e.target.value)}
-                  placeholder="Contoh: 20+"
-                  className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-semibold transition"
-                  required
-                />
-              </div>
+              <p className="text-xs leading-relaxed text-slate-500">
+                Total anggota, prestasi, dan lomba dihitung otomatis dari akun pengguna aktif, data capaian prestasi, dan data lomba yang tersimpan. Angka tersebut tidak perlu diubah manual.
+              </p>
+              <p className="text-xs leading-relaxed text-slate-500">
+                Link Google Drive dikonversi otomatis. Untuk situs lain, gunakan URL langsung ke file gambar (HTTP/HTTPS), bukan link halaman album atau pratinjau.
+              </p>
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
@@ -344,7 +319,46 @@ export default function AdminLandingPage() {
                   type="text"
                   value={heroImg}
                   onChange={(e) => setHeroImg(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  URL Foto Tim UKM Debat (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={groupImg}
+                  onChange={(e) => setGroupImg(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  URL Foto Tentang Kami / Est. 2018 (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={aboutImg}
+                  onChange={(e) => setAboutImg(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
+                  className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  URL Foto Background CTA / Siap Menjadi Debater (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={ctaImg}
+                  onChange={(e) => setCtaImg(e.target.value)}
+                  placeholder="https://drive.google.com/file/d/..."
                   className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
                 />
               </div>
@@ -354,7 +368,7 @@ export default function AdminLandingPage() {
                 disabled={submitting}
                 className="w-full py-3 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md"
               >
-                {submitting ? 'Menyimpan...' : 'Simpan Perubahan Statistik ✓'}
+                {submitting ? 'Menyimpan...' : 'Simpan Perubahan Foto ✓'}
               </button>
             </form>
           </div>
@@ -454,9 +468,12 @@ export default function AdminLandingPage() {
                   type="text"
                   value={imgBerita}
                   onChange={(e) => setImgBerita(e.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://drive.google.com/file/d/..."
                   className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Foto kegiatan tampil di bagian Kegiatan Terkini. Link Google Drive dikonversi otomatis; situs lain perlu URL langsung ke file gambar (HTTP/HTTPS).
+                </p>
               </div>
 
               <button
@@ -596,9 +613,12 @@ export default function AdminLandingPage() {
                   type="text"
                   value={imgPrestasi}
                   onChange={(e) => setImgPrestasi(e.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://drive.google.com/file/d/..."
                   className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Link Google Drive dikonversi otomatis. Untuk situs lain, gunakan URL langsung ke file gambar (HTTP/HTTPS), bukan link album atau halaman pratinjau.
+                </p>
               </div>
 
               <button
@@ -725,9 +745,12 @@ export default function AdminLandingPage() {
                   type="text"
                   value={imgLomba}
                   onChange={(e) => setImgLomba(e.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://drive.google.com/file/d/..."
                   className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Link Google Drive dikonversi otomatis. Untuk situs lain, gunakan URL langsung ke file gambar (HTTP/HTTPS), bukan link album atau halaman pratinjau.
+                </p>
               </div>
 
               <button
