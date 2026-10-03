@@ -2,10 +2,59 @@
 
 import { useState, useEffect } from 'react';
 
+interface BeritaAdminItem {
+  id_berita: number;
+  title: string;
+  date: string;
+  tag: string;
+  desc?: string | null;
+  img_url?: string | null;
+}
+
+interface AnggotaAdminItem {
+  id_anggota: number;
+  nama: string;
+  posisi: string;
+  inisial: string;
+}
+
+interface AboutContent {
+  title: string;
+  paragraph1: string;
+  paragraph2: string;
+  vision: string;
+  mission: string;
+  established: string;
+}
+
+const initialAboutContent: AboutContent = {
+  title: 'Membangun Debater Berkarakter & Berprestasi',
+  paragraph1: 'UKM Debat UNIDA Gontor adalah unit kegiatan mahasiswa yang berfokus pada pengembangan kemampuan debat parlementer, berpikir kritis, dan komunikasi publik. Berdiri sejak 2018, kami telah melahirkan puluhan debater berprestasi di tingkat regional dan nasional.',
+  paragraph2: 'Dengan kurikulum berbasis format internasional — Asian Parliamentary, British Parliamentary, dan World Schools Debate — kami mempersiapkan anggota untuk bersaing di panggung debat tertinggi.',
+  vision: 'Mencetak debater nasional yang berintegritas',
+  mission: 'Latihan rutin, kompetisi aktif, pembinaan karakter',
+  established: '2018',
+};
+
+function formatBeritaImageUrls(value: unknown) {
+  if (typeof value !== 'string' || !value) return '';
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      return parsed.filter((image): image is string => typeof image === 'string').join('\n');
+    }
+  } catch {
+    // Existing records store a single URL as plain text.
+  }
+
+  return value;
+}
+
 export default function AdminLandingPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'stats' | 'berita' | 'prestasi' | 'lomba'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'about' | 'anggota' | 'berita' | 'prestasi' | 'lomba'>('stats');
 
   // --- STATE FORM STATISTIK ---
   const [totalAnggota, setTotalAnggota] = useState('-');
@@ -15,6 +64,11 @@ export default function AdminLandingPage() {
   const [aboutImg, setAboutImg] = useState('');
   const [groupImg, setGroupImg] = useState('');
   const [ctaImg, setCtaImg] = useState('');
+  const [aboutContent, setAboutContent] = useState<AboutContent>(initialAboutContent);
+  const [anggotaNama, setAnggotaNama] = useState('');
+  const [anggotaPosisi, setAnggotaPosisi] = useState('');
+  const [anggotaInisial, setAnggotaInisial] = useState('');
+  const [editingAnggotaId, setEditingAnggotaId] = useState<number | null>(null);
 
   // --- STATE FORM BERITA ---
   const [judulBerita, setJudulBerita] = useState('');
@@ -22,6 +76,7 @@ export default function AdminLandingPage() {
   const [tagBerita, setTagBerita] = useState('Seminar');
   const [descBerita, setDescBerita] = useState('');
   const [imgBerita, setImgBerita] = useState('');
+  const [editingBeritaId, setEditingBeritaId] = useState<number | null>(null);
 
   // --- STATE FORM PRESTASI ---
   const [juaraPrestasi, setJuaraPrestasi] = useState('');
@@ -37,7 +92,8 @@ export default function AdminLandingPage() {
   const [imgLomba, setImgLomba] = useState('');
 
   // Data dari API
-  const [beritaData, setBeritaData] = useState<any[]>([]);
+  const [beritaData, setBeritaData] = useState<BeritaAdminItem[]>([]);
+  const [anggotaData, setAnggotaData] = useState<AnggotaAdminItem[]>([]);
   const [prestasiData, setPrestasiData] = useState<any[]>([]);
   const [lombaData, setLombaData] = useState<any[]>([]);
 
@@ -56,7 +112,18 @@ export default function AdminLandingPage() {
           setAboutImg(resData.data.stats.about_img || '');
           setGroupImg(resData.data.stats.group_img || '');
           setCtaImg(resData.data.stats.cta_img || '');
+          if (resData.data.stats.about_content) {
+            try {
+              const savedContent: unknown = JSON.parse(resData.data.stats.about_content);
+              if (savedContent && typeof savedContent === 'object') {
+                setAboutContent({ ...initialAboutContent, ...savedContent });
+              }
+            } catch {
+              setAboutContent(initialAboutContent);
+            }
+          }
         }
+        setAnggotaData(resData.data.anggota || []);
         setBeritaData(resData.data.berita || []);
         setPrestasiData(resData.data.prestasi || []);
         setLombaData(resData.data.lomba || []);
@@ -65,6 +132,62 @@ export default function AdminLandingPage() {
       console.warn('Gagal memuat data landing:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveAbout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/admin/landing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'about', payload: { about_content: aboutContent } }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Gagal menyimpan Tentang Kami');
+      alert('Konten Tentang Kami berhasil diperbarui!');
+      fetchData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menyimpan Tentang Kami');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetAnggotaForm = () => {
+    setEditingAnggotaId(null);
+    setAnggotaNama('');
+    setAnggotaPosisi('');
+    setAnggotaInisial('');
+  };
+
+  const handleSaveAnggota = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/admin/landing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'anggota',
+          payload: {
+            id_anggota: editingAnggotaId,
+            nama: anggotaNama,
+            posisi: anggotaPosisi,
+            inisial: anggotaInisial,
+          },
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Gagal menyimpan anggota');
+      alert(editingAnggotaId ? 'Data anggota berhasil diperbarui!' : 'Anggota berhasil ditambahkan!');
+      resetAnggotaForm();
+      fetchData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Gagal menyimpan anggota');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -119,6 +242,7 @@ export default function AdminLandingPage() {
         body: JSON.stringify({
           type: 'berita',
           payload: {
+            id_berita: editingBeritaId,
             title: judulBerita,
             date: tanggalBerita,
             tag: tagBerita,
@@ -129,9 +253,10 @@ export default function AdminLandingPage() {
       });
 
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || 'Gagal menambah berita');
+      if (!res.ok) throw new Error(result.message || 'Gagal menyimpan berita');
 
-      alert('Berita acara berhasil ditambahkan!');
+      alert(editingBeritaId ? 'Berita acara berhasil diperbarui!' : 'Berita acara berhasil ditambahkan!');
+      setEditingBeritaId(null);
       setJudulBerita('');
       setTanggalBerita('');
       setDescBerita('');
@@ -142,6 +267,24 @@ export default function AdminLandingPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditBerita = (item: BeritaAdminItem) => {
+    setEditingBeritaId(item.id_berita);
+    setJudulBerita(item.title || '');
+    setTanggalBerita(item.date || '');
+    setTagBerita(item.tag || 'Seminar');
+    setDescBerita(item.desc || '');
+    setImgBerita(formatBeritaImageUrls(item.img_url));
+  };
+
+  const handleCancelEditBerita = () => {
+    setEditingBeritaId(null);
+    setJudulBerita('');
+    setTanggalBerita('');
+    setTagBerita('Seminar');
+    setDescBerita('');
+    setImgBerita('');
   };
 
   // 4. Tambah Prestasi
@@ -226,7 +369,7 @@ export default function AdminLandingPage() {
   };
 
   // 6. Hapus Item
-  const handleHapusItem = async (type: 'berita' | 'prestasi' | 'lomba', id: number) => {
+  const handleHapusItem = async (type: 'anggota' | 'berita' | 'prestasi' | 'lomba', id: number) => {
     if (!confirm('Apakah Anda yakin ingin menghapus data ini dari landing page?')) return;
 
     try {
@@ -264,6 +407,18 @@ export default function AdminLandingPage() {
           }`}
         >
           📊 Statistik & Hero
+        </button>
+        <button
+          onClick={() => setActiveTab('about')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer ${activeTab === 'about' ? 'bg-[#334F70] text-white shadow-md' : 'text-slate-500 hover:text-[#334F70]'}`}
+        >
+          ℹ️ Tentang Kami
+        </button>
+        <button
+          onClick={() => setActiveTab('anggota')}
+          className={`px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer ${activeTab === 'anggota' ? 'bg-[#334F70] text-white shadow-md' : 'text-slate-500 hover:text-[#334F70]'}`}
+        >
+          👥 Struktur UKM ({anggotaData.length})
         </button>
         <button
           onClick={() => setActiveTab('berita')}
@@ -397,11 +552,102 @@ export default function AdminLandingPage() {
         </div>
       )}
 
+      {activeTab === 'about' && (
+        <form onSubmit={handleSaveAbout} className="max-w-3xl space-y-5 rounded-2xl border border-[#C8D8E8] bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-lg font-extrabold">Konten Tentang Kami</h2>
+            <p className="mt-1 text-xs text-slate-500">Perubahan akan tampil pada bagian Tentang Kami di landing page.</p>
+          </div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Judul
+            <input value={aboutContent.title} onChange={(e) => setAboutContent({ ...aboutContent, title: e.target.value })} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-semibold normal-case text-[#334F70]" required />
+          </label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Deskripsi
+            <textarea value={aboutContent.paragraph1} onChange={(e) => setAboutContent({ ...aboutContent, paragraph1: e.target.value })} rows={4} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-medium normal-case text-[#334F70]" />
+          </label>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Pendekatan / Kurikulum
+            <textarea value={aboutContent.paragraph2} onChange={(e) => setAboutContent({ ...aboutContent, paragraph2: e.target.value })} rows={3} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-medium normal-case text-[#334F70]" />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Visi
+              <textarea value={aboutContent.vision} onChange={(e) => setAboutContent({ ...aboutContent, vision: e.target.value })} rows={3} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-medium normal-case text-[#334F70]" />
+            </label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Misi
+              <textarea value={aboutContent.mission} onChange={(e) => setAboutContent({ ...aboutContent, mission: e.target.value })} rows={3} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-medium normal-case text-[#334F70]" />
+            </label>
+          </div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+            Label tahun berdiri
+            <input value={aboutContent.established} onChange={(e) => setAboutContent({ ...aboutContent, established: e.target.value })} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-semibold normal-case text-[#334F70]" />
+          </label>
+          <button type="submit" disabled={submitting} className="w-full rounded-xl bg-[#334F70] py-3 text-xs font-black uppercase tracking-wider text-white transition hover:opacity-90 disabled:opacity-60">
+            {submitting ? 'Menyimpan...' : 'Simpan Tentang Kami'}
+          </button>
+        </form>
+      )}
+
+      {activeTab === 'anggota' && (
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-3">
+          <form onSubmit={handleSaveAnggota} className="space-y-4 rounded-2xl border border-[#C8D8E8] bg-white p-6 shadow-sm">
+            <h2 className="border-b border-[#F3F3F4] pb-2 text-lg font-extrabold">{editingAnggotaId ? 'Edit Anggota' : 'Tambah Anggota'}</h2>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Nama
+              <input value={anggotaNama} onChange={(e) => setAnggotaNama(e.target.value)} className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-semibold normal-case text-[#334F70]" required />
+            </label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Jabatan / Posisi
+              <input value={anggotaPosisi} onChange={(e) => setAnggotaPosisi(e.target.value)} placeholder="Contoh: Ketua UKM" className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-semibold normal-case text-[#334F70]" required />
+            </label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+              Inisial (opsional)
+              <input value={anggotaInisial} onChange={(e) => setAnggotaInisial(e.target.value)} maxLength={10} placeholder="Otomatis dari nama" className="mt-1 w-full rounded-xl border border-[#C8D8E8] bg-[#F3F3F4] p-3 text-sm font-semibold normal-case text-[#334F70]" />
+            </label>
+            <button type="submit" disabled={submitting} className="w-full rounded-xl bg-[#334F70] py-3 text-xs font-black uppercase tracking-wider text-white transition hover:opacity-90 disabled:opacity-60">
+              {submitting ? 'Menyimpan...' : editingAnggotaId ? 'Perbarui Anggota' : 'Tambah Anggota'}
+            </button>
+            {editingAnggotaId && <button type="button" onClick={resetAnggotaForm} className="w-full rounded-xl border border-[#C8D8E8] py-3 text-xs font-bold">Batal Edit</button>}
+          </form>
+
+          <div className="overflow-hidden rounded-2xl border border-[#C8D8E8] bg-white shadow-sm lg:col-span-2">
+            <div className="border-b border-[#F3F3F4] p-6">
+              <h2 className="text-lg font-extrabold">Struktur UKM ({anggotaData.length})</h2>
+            </div>
+            {loading ? <p className="p-8 text-center text-sm text-slate-400">Memuat anggota...</p> : anggotaData.length === 0 ? (
+              <p className="p-8 text-center text-sm text-slate-400">Belum ada anggota dalam struktur UKM.</p>
+            ) : (
+              <div className="divide-y divide-[#F3F3F4]">
+                {anggotaData.map((item) => (
+                  <div key={item.id_anggota} className="flex flex-wrap items-center justify-between gap-3 p-4 sm:px-6">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#C8D8E8] text-xs font-black text-[#334F70]">{item.inisial}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#334F70]">{item.nama}</p>
+                        <p className="text-xs text-slate-500">{item.posisi}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => { setEditingAnggotaId(item.id_anggota); setAnggotaNama(item.nama); setAnggotaPosisi(item.posisi); setAnggotaInisial(item.inisial); }} className="rounded-lg border border-[#C8D8E8] px-3 py-1.5 text-xs font-bold text-[#334F70] hover:bg-[#F3F3F4]">Edit</button>
+                      <button type="button" onClick={() => handleHapusItem('anggota', item.id_anggota)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100">Hapus</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* TAB 2: MANAJEMEN BERITA ACARA */}
       {activeTab === 'berita' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <div className="bg-white p-6 rounded-2xl border border-[#C8D8E8] shadow-sm space-y-4">
-            <h2 className="text-lg font-extrabold border-b border-[#F3F3F4] pb-2">➕ Tambah Berita Acara</h2>
+            <h2 className="text-lg font-extrabold border-b border-[#F3F3F4] pb-2">
+              {editingBeritaId ? '✏️ Edit Berita Acara' : '➕ Tambah Berita Acara'}
+            </h2>
             
             <form onSubmit={handleTambahBerita} className="space-y-4">
               <div>
@@ -462,17 +708,17 @@ export default function AdminLandingPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                  URL Foto Kegiatan (Opsional)
+                  URL Foto Kegiatan (Opsional, satu URL per baris)
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={imgBerita}
                   onChange={(e) => setImgBerita(e.target.value)}
-                  placeholder="https://drive.google.com/file/d/..."
+                  placeholder={'https://drive.google.com/file/d/...\nhttps://contoh.com/foto-kedua.jpg'}
+                  rows={3}
                   className="w-full p-3 bg-[#F3F3F4] border border-[#C8D8E8] rounded-xl text-sm font-medium transition"
                 />
                 <p className="mt-1 text-[11px] text-slate-400">
-                  Foto kegiatan tampil di bagian Kegiatan Terkini. Link Google Drive dikonversi otomatis; situs lain perlu URL langsung ke file gambar (HTTP/HTTPS).
+                  Masukkan satu URL gambar per baris. Link Google Drive dikonversi otomatis; situs lain perlu URL langsung ke file gambar (HTTP/HTTPS).
                 </p>
               </div>
 
@@ -481,8 +727,18 @@ export default function AdminLandingPage() {
                 disabled={submitting}
                 className="w-full py-3 bg-linear-to-r from-[#7EA0CF] to-[#334F70] hover:opacity-95 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md"
               >
-                {submitting ? 'Menyimpan...' : 'Simpan Berita Baru ✓'}
+                {submitting ? 'Menyimpan...' : editingBeritaId ? 'Perbarui Berita ✓' : 'Simpan Berita Baru ✓'}
               </button>
+              {editingBeritaId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditBerita}
+                  disabled={submitting}
+                  className="w-full rounded-xl border border-[#C8D8E8] py-3 text-xs font-bold text-[#334F70] transition hover:bg-[#F3F3F4]"
+                >
+                  Batal Edit
+                </button>
+              )}
             </form>
           </div>
 
@@ -508,7 +764,7 @@ export default function AdminLandingPage() {
                       <th className="p-4">Judul Berita</th>
                       <th className="p-4 w-36">Tanggal</th>
                       <th className="p-4 w-28 text-center">Tag</th>
-                      <th className="p-4 w-24 text-center">Aksi</th>
+                      <th className="p-4 w-36 text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F3F3F4] text-sm font-medium">
@@ -523,6 +779,13 @@ export default function AdminLandingPage() {
                           </span>
                         </td>
                         <td className="p-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleEditBerita(item)}
+                            className="mr-2 rounded-lg border border-[#C8D8E8] bg-white px-3 py-1.5 text-xs font-bold text-[#334F70] transition hover:bg-[#F3F3F4]"
+                          >
+                            Edit
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleHapusItem('berita', item.id_berita)}

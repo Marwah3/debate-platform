@@ -102,6 +102,7 @@ model landing_stats {
   about_img      String? @db.Text
   group_img      String? @db.Text
   cta_img        String? @db.Text
+  about_content  String? @db.Text
 }
 
 model anggota {

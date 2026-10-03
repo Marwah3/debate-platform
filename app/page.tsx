@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 
 const C = {
   navy:   "#35506F",
@@ -21,6 +21,40 @@ interface StatData {
   about_img?: string;
   group_img?: string;
   cta_img?: string;
+  about_content?: string | null;
+}
+
+interface AboutContent {
+  title: string;
+  paragraph1: string;
+  paragraph2: string;
+  vision: string;
+  mission: string;
+  established: string;
+}
+
+const initialAboutContent: AboutContent = {
+  title: 'Membangun Debater Berkarakter & Berprestasi',
+  paragraph1: 'UKM Debat UNIDA Gontor adalah unit kegiatan mahasiswa yang berfokus pada pengembangan kemampuan debat parlementer, berpikir kritis, dan komunikasi publik. Berdiri sejak 2018, kami telah melahirkan puluhan debater berprestasi di tingkat regional dan nasional.',
+  paragraph2: 'Dengan kurikulum berbasis format internasional — Asian Parliamentary, British Parliamentary, dan World Schools Debate — kami mempersiapkan anggota untuk bersaing di panggung debat tertinggi.',
+  vision: 'Mencetak debater nasional yang berintegritas',
+  mission: 'Latihan rutin, kompetisi aktif, pembinaan karakter',
+  established: '2018',
+};
+
+function parseAboutContent(value: unknown): AboutContent {
+  if (typeof value !== 'string') return initialAboutContent;
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (parsed && typeof parsed === 'object') {
+      return { ...initialAboutContent, ...(parsed as Partial<AboutContent>) };
+    }
+  } catch {
+    return initialAboutContent;
+  }
+
+  return initialAboutContent;
 }
 
 interface AnggotaItem {
@@ -71,6 +105,7 @@ export default function LandingPage() {
 
   // State Dinamis
   const [stats, setStats] = useState<StatData>({ total_anggota: "-", total_prestasi: "-", total_lomba: "-" });
+  const [aboutContent, setAboutContent] = useState<AboutContent>(initialAboutContent);
   const [anggota, setAnggota] = useState<AnggotaItem[]>([
     { id_anggota: 1, nama: "Ahmad Fauzan", posisi: "Ketua UKM", inisial: "AF" },
     { id_anggota: 2, nama: "Rizky Amalia", posisi: "Wakil Ketua", inisial: "RA" },
@@ -88,6 +123,7 @@ export default function LandingPage() {
     { id_prestasi: 4, juara: "Best Speaker", lomba: "World Schools Debate Exhibition UNIDA", tahun: "2023", penyelenggara: "UNIDA Gontor", img_url: IMG.trophy },
   ]);
   const [beritaAcara, setBeritaAcara] = useState<BeritaItem[]>([]);
+  const [selectedBerita, setSelectedBerita] = useState<BeritaItem | null>(null);
   const [lomba, setLomba] = useState<LombaItem[]>([
     { id_lomba: 1, nama: "NUDC 2024", level: "Nasional", kota: "Jakarta", img_url: IMG.mic },
     { id_lomba: 2, nama: "Olimpiade Debat Kemendikbud", level: "Nasional", kota: "Surabaya", img_url: IMG.speaking },
@@ -106,8 +142,11 @@ export default function LandingPage() {
         const result = await res.json();
         
         if (result?.success && result?.data) {
-          if (result.data.stats) setStats(result.data.stats);
-          if (Array.isArray(result.data.anggota) && result.data.anggota.length > 0) setAnggota(result.data.anggota);
+          if (result.data.stats) {
+            setStats(result.data.stats);
+            setAboutContent(parseAboutContent(result.data.stats.about_content));
+          }
+          if (Array.isArray(result.data.anggota)) setAnggota(result.data.anggota);
           if (Array.isArray(result.data.prestasi)) setPrestasi(result.data.prestasi);
           if (Array.isArray(result.data.berita)) setBeritaAcara(result.data.berita);
           if (Array.isArray(result.data.lomba)) setLomba(result.data.lomba);
@@ -118,6 +157,38 @@ export default function LandingPage() {
     }
     loadLandingData();
   }, []);
+
+  useEffect(() => {
+    if (!selectedBerita) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedBerita(null);
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedBerita]);
+
+  function getBeritaImages(value?: string) {
+    if (!value) return [];
+
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every((image) => typeof image === 'string')) {
+        return parsed;
+      }
+    } catch {
+      // Existing records store a single URL as plain text.
+    }
+
+    return [value];
+  }
 
   return (
     <div style={{ background: C.white }} className="select-none min-h-screen font-sans">
@@ -257,8 +328,8 @@ export default function LandingPage() {
           <div className="relative">
             <img src={stats.about_img || IMG.about} alt="Tentang UKM Debat" className="rounded-3xl w-full h-80 md:h-115 object-cover shadow-md" />
             <div className="absolute -bottom-4 -right-4 px-6 py-4 rounded-2xl shadow-xl" style={{ background: C.navy }}>
-              <p className="text-2xl font-extrabold text-white">Est. 2018</p>
-              <p className="text-xs font-semibold" style={{ color: C.ice }}>Berdiri sejak 2018</p>
+                <p className="text-2xl font-extrabold text-white">Est. {aboutContent.established}</p>
+                <p className="text-xs font-semibold" style={{ color: C.ice }}>Berdiri sejak {aboutContent.established}</p>
             </div>
           </div>
 
@@ -267,17 +338,17 @@ export default function LandingPage() {
               Tentang Kami
             </span>
             <h2 className="text-3xl md:text-4xl font-extrabold leading-snug" style={{ color: C.navy }}>
-              Membangun Debater<br />Berkarakter & Berprestasi
+                {aboutContent.title}
             </h2>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "#6b8aaa" }}>
-              UKM Debat UNIDA Gontor adalah unit kegiatan mahasiswa yang berfokus pada pengembangan kemampuan debat parlementer, berpikir kritis, dan komunikasi publik. Berdiri sejak 2018, kami telah melahirkan puluhan debater berprestasi di tingkat regional dan nasional.
+                {aboutContent.paragraph1}
             </p>
             <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "#6b8aaa" }}>
-              Dengan kurikulum berbasis format internasional — Asian Parliamentary, British Parliamentary, dan World Schools Debate — kami mempersiapkan anggota untuk bersaing di panggung debat tertinggi.
+                {aboutContent.paragraph2}
             </p>
 
             <div className="grid grid-cols-2 gap-4 pt-2">
-              {[["🎯", "Visi", "Mencetak debater nasional yang berintegritas"], ["📘", "Misi", "Latihan rutin, kompetisi aktif, pembinaan karakter"]].map(([icon, judul, isi]) => (
+                {[ ["🎯", "Visi", aboutContent.vision], ["📘", "Misi", aboutContent.mission]].map(([icon, judul, isi]) => (
                 <div key={judul} className="p-4 rounded-2xl border border-[#C7D9EA]" style={{ background: C.ice }}>
                   <p className="text-xl mb-1">{icon}</p>
                   <p className="font-bold text-xs sm:text-sm mb-1" style={{ color: C.navy }}>{judul}</p>
@@ -301,32 +372,101 @@ export default function LandingPage() {
 
           {beritaAcara.length > 0 ? (
             <div className="grid md:grid-cols-3 gap-6">
-              {beritaAcara.map((b) => (
-                <div key={b.id_berita} className="rounded-3xl overflow-hidden hover:shadow-lg transition-all duration-300 bg-white" style={{ border: `1.5px solid ${C.ice}` }}>
-                  <div className="h-52 overflow-hidden relative bg-[#C7D9EA]">
-                    {b.img_url ? (
-                      <img src={b.img_url} alt={b.title} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-sm font-semibold text-[#35506F]">
-                        Foto kegiatan belum ditambahkan
-                      </div>
-                    )}
-                    <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold shadow-md" style={{ background: C.cobalt, color: "#fff" }}>
-                      {b.tag}
-                    </span>
-                  </div>
-                  <div className="p-5">
-                    <p className="text-xs mb-1.5 font-bold" style={{ color: C.cobalt }}>{b.date}</p>
-                    <h3 className="font-bold text-sm mb-2 leading-snug" style={{ color: C.navy }}>{b.title}</h3>
-                    <p className="text-xs leading-relaxed" style={{ color: "#6b8aaa" }}>{b.desc}</p>
-                  </div>
-                </div>
-              ))}
+              {beritaAcara.map((b) => {
+                const images = getBeritaImages(b.img_url);
+
+                return (
+                  <button
+                    key={b.id_berita}
+                    type="button"
+                    onClick={() => setSelectedBerita(b)}
+                    aria-haspopup="dialog"
+                    aria-expanded={selectedBerita?.id_berita === b.id_berita}
+                    aria-label={`Buka berita ${b.title}`}
+                    className="group block w-full cursor-pointer overflow-hidden rounded-3xl bg-white text-left transition-all duration-300 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4"
+                    style={{ border: `1.5px solid ${C.ice}` }}
+                  >
+                    <div className="h-52 overflow-hidden relative bg-[#C7D9EA]">
+                      {images[0] ? (
+                        <img src={images[0]} alt={b.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-sm font-semibold text-[#35506F]">
+                          Foto kegiatan belum ditambahkan
+                        </div>
+                      )}
+                      <span className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold shadow-md" style={{ background: C.cobalt, color: "#fff" }}>
+                        {b.tag}
+                      </span>
+                    </div>
+                    <div className="p-5">
+                      <p className="text-xs mb-1.5 font-bold" style={{ color: C.cobalt }}>{b.date}</p>
+                      <h3 className="font-bold text-sm mb-2 leading-snug" style={{ color: C.navy }}>{b.title}</h3>
+                      <p className="line-clamp-3 text-xs leading-relaxed" style={{ color: "#6b8aaa" }}>{b.desc || 'Belum ada deskripsi kegiatan.'}</p>
+                      <span className="mt-3 inline-block text-xs font-bold" style={{ color: C.navy }}>Baca selengkapnya</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <p className="rounded-2xl border border-[#C7D9EA] bg-white p-8 text-center text-sm font-medium text-[#6b8aaa]">
               Belum ada kegiatan terbaru. Informasi kegiatan dapat ditambahkan melalui Kelola Landing Page.
             </p>
+          )}
+
+          {selectedBerita && (
+            <div className="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
+              <button
+                type="button"
+                aria-label="Tutup detail berita"
+                className="absolute inset-0 cursor-default bg-black/60 backdrop-blur-sm"
+                onClick={() => setSelectedBerita(null)}
+              />
+              <article
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="berita-detail-title"
+                className="relative z-10 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+              >
+                <div className="sticky top-0 z-10 flex justify-end border-b border-[#C7D9EA] bg-white/95 p-3 backdrop-blur-sm">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBerita(null)}
+                    aria-label="Tutup detail berita"
+                    title="Tutup"
+                    className="inline-flex size-10 items-center justify-center rounded-full text-[#35506F] transition hover:bg-[#C7D9EA]/50 focus-visible:outline-2 focus-visible:outline-offset-2"
+                  >
+                    <X size={20} aria-hidden="true" />
+                  </button>
+                </div>
+                <div className="space-y-5 p-5 sm:p-8">
+                  <div>
+                    <span className="inline-block rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: C.cobalt }}>
+                      {selectedBerita.tag}
+                    </span>
+                    <p className="mt-4 text-sm font-bold" style={{ color: C.cobalt }}>{selectedBerita.date}</p>
+                    <h3 id="berita-detail-title" className="mt-1 text-2xl font-extrabold" style={{ color: C.navy }}>
+                      {selectedBerita.title}
+                    </h3>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: "#547191" }}>
+                    {selectedBerita.desc || 'Belum ada deskripsi kegiatan.'}
+                  </p>
+                  {getBeritaImages(selectedBerita.img_url).length > 0 && (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {getBeritaImages(selectedBerita.img_url).map((image, index) => (
+                        <img
+                          key={`${selectedBerita.id_berita}-${image}`}
+                          src={image}
+                          alt={`${selectedBerita.title} - foto ${index + 1}`}
+                          className="aspect-square w-full rounded-xl object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </article>
+            </div>
           )}
         </div>
       </section>

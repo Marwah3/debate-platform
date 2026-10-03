@@ -16,8 +16,9 @@ export async function GET() {
         about_img: string | null;
         group_img: string | null;
         cta_img: string | null;
+        about_content: string | null;
       }>>`
-        SELECT total_anggota, total_prestasi, total_lomba, hero_img, about_img, group_img, cta_img
+        SELECT total_anggota, total_prestasi, total_lomba, hero_img, about_img, group_img, cta_img, about_content
         FROM landing_stats
         ORDER BY id_stats ASC
         LIMIT 1
@@ -37,6 +38,7 @@ export async function GET() {
       about_img: null,
       group_img: null,
       cta_img: null,
+      about_content: null,
     };
 
     const liveStats = {
